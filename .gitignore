@@ -1,0 +1,19 @@
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# SQLite work files
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
