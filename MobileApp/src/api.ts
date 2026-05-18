@@ -5,8 +5,10 @@
 
 import { storage } from "./storage";
 
-const BASE_URL = "http://192.168.178.114:5000"
-
+import Constants from "expo-constants";
+const BASE_URL =
+    Constants.expoConfig?.extra?.apiBaseUrl
+    ?? "http://localhost:5000";
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
 export interface Artist {

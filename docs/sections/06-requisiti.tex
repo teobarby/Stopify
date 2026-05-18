@@ -1,0 +1,209 @@
+\section{Requisiti funzionali e non funzionali}
+
+\subsection{Requisiti funzionali}
+\begin{longtable}{@{}p{1.2cm}p{4.5cm}X@{}}
+    \toprule
+    \textbf{ID} & \textbf{Nome} & \textbf{Descrizione} \\
+    \midrule
+    \endfirsthead
+    \toprule
+    \textbf{ID} & \textbf{Nome} & \textbf{Descrizione} \\
+    \midrule
+    \endhead
+
+    \FRid{1} & Ricerca per signature &
+    Il sistema deve consentire di cercare un testo per
+    \code{track\_name}~+~\code{artist\_name}, con eventuale filtro su
+    \code{album\_name} e \code{duration}. Realizzato da
+    \endpoint{GET}{/api/get} e \endpoint{GET}{/api/get-cached}. \\
+
+    \FRid{2} & Recupero per ID &
+    Deve essere possibile recuperare un testo conoscendo il suo identificativo
+    univoco. Realizzato da \endpoint{GET}{/api/get/<id>}. \\
+
+    \FRid{3} & Ricerca generica &
+    L'utente deve poter cercare testi per parola chiave (\code{q}) o per
+    combinazione di titolo, artista, album. Realizzato da
+    \endpoint{GET}{/api/search}. \\
+
+    \FRid{4} & Pubblicazione anonima &
+    Un utente non registrato deve poter pubblicare un nuovo testo dopo aver
+    superato una sfida \emph{Proof of Work}. Realizzato dalla coppia
+    \endpoint{POST}{/api/request-challenge} +
+    \endpoint{POST}{/api/publish}~con header \code{X-Publish-Token}. \\
+
+    \FRid{5} & Pubblicazione autenticata &
+    Un utente autenticato (Bearer token) deve poter pubblicare un nuovo testo
+    senza risolvere la PoW. Il brano viene attribuito al suo username nel
+    campo \code{submittedBy}. \\
+
+    \FRid{6} & Registrazione utente &
+    Deve essere possibile creare un account fornendo username, email e
+    password. Realizzato da \endpoint{POST}{/auth/register}. \\
+
+    \FRid{7} & Login utente &
+    L'utente deve potersi autenticare con username o email e password,
+    ricevendo \emph{access} e \emph{refresh token}. Realizzato da
+    \endpoint{POST}{/auth/login}. \\
+
+    \FRid{8} & Refresh del token &
+    L'\emph{access token} scaduto deve poter essere rinnovato senza re-login,
+    presentando il \emph{refresh token}. Realizzato da
+    \endpoint{POST}{/auth/refresh}. \\
+
+    \FRid{9} & Dati dell'utente corrente &
+    L'utente autenticato deve poter recuperare i propri dati di profilo.
+    Realizzato da \endpoint{GET}{/auth/me}. \\
+
+    \FRid{10} & Elenco dei propri brani &
+    L'utente autenticato deve poter ottenere la lista dei testi da lui
+    pubblicati. Realizzato da \endpoint{GET}{/api/me/songs}. \\
+
+    \FRid{11} & Modifica di un proprio brano &
+    L'utente autenticato deve poter modificare un brano di cui è autore.
+    Realizzato da \endpoint{PUT}{/api/songs/<id>}. \\
+
+    \FRid{12} & Cancellazione di un proprio brano &
+    L'utente autenticato deve poter cancellare un brano di cui è autore.
+    Realizzato da \endpoint{DELETE}{/api/songs/<id>}. \\
+
+    \FRid{13} & Esplorazione del catalogo &
+    Il sistema deve fornire un elenco paginato dei brani, ordinabile per
+    data, titolo o artista. Realizzato da \endpoint{GET}{/explore}. \\
+
+    \FRid{14} & Lettura del testo sincronizzato &
+    L'applicazione mobile deve poter mostrare il testo sincronizzato a tempo
+    con la riproduzione, evidenziando la riga corrente. \\
+
+    \FRid{15} & Health check &
+    Deve essere disponibile un endpoint per verificare lo stato del backend.
+    Realizzato da \endpoint{GET}{/health}. \\
+
+    \bottomrule
+    \caption{Requisiti funzionali.}
+\end{longtable}
+
+\subsection{Requisiti non funzionali}
+\begin{longtable}{@{}p{1.5cm}p{2.6cm}p{6cm}p{3cm}@{}}
+    \toprule
+    \textbf{ID} & \textbf{Tipo} & \textbf{Descrizione} & \textbf{Riferito a} \\
+    \midrule
+    \endfirsthead
+    \toprule
+    \textbf{ID} & \textbf{Tipo} & \textbf{Descrizione} & \textbf{Riferito a} \\
+    \midrule
+    \endhead
+
+    \NFRid{1} & Usabilità &
+    L'app mobile deve essere comprensibile da un utente non tecnico in meno
+    di un minuto di navigazione.
+    & Mobile app \\
+
+    \NFRid{2} & Prestazioni &
+    Le risposte dell'API devono avere latenza p95 $<$ 200~ms su catalogo
+    fino a 10000 brani in ambiente di sviluppo.
+    & Backend \\
+
+    \NFRid{3} & Portabilità &
+    Il codice del backend deve girare senza modifiche su Linux e macOS;
+    l'app mobile su iOS, Android e Web.
+    & Tutto il sistema \\
+
+    \NFRid{4} & Manutenibilità &
+    Architettura a strati \emph{routes/services/models/utils} con
+    separazione netta delle responsabilità.
+    & Backend \\
+
+    \NFRid{5} & Sicurezza --- riservatezza &
+    Le password degli utenti non devono mai essere memorizzate in chiaro
+    né essere visibili nei log.
+    & DB, Auth \\
+
+    \NFRid{6} & Sicurezza --- integrità &
+    Una pubblicazione non può essere attribuita all'utente sbagliato; un
+    utente non può modificare o cancellare brani di cui non è autore.
+    & API \\
+
+    \NFRid{7} & Sicurezza --- disponibilità &
+    Il sistema deve rifiutare richieste con body oltre la soglia
+    (\code{MAX\_CONTENT\_LENGTH = 256 KB}) per limitare attacchi DoS.
+    & Backend \\
+
+    \NFRid{8} & Scalabilità &
+    Il backend deve poter girare dietro a un WSGI server multi-worker
+    (es. \emph{gunicorn}) senza necessità di modifiche significative.
+    & Backend \\
+
+    \NFRid{9} & Conformità --- GDPR &
+    L'utente deve poter accedere ai propri dati personali
+    (\code{/auth/me}). La cancellazione dell'account è prevista come
+    estensione futura.
+    & Auth \\
+
+    \NFRid{10} & Documentabilità &
+    Il sistema deve essere accompagnato da un \code{README} e da una
+    documentazione delle API consultabile via esempi \code{curl}.
+    & Repository \\
+
+    \bottomrule
+    \caption{Requisiti non funzionali.}
+\end{longtable}
+
+\subsection{Requisiti di sicurezza}
+\begin{longtable}{@{}p{1.5cm}p{4cm}X@{}}
+    \toprule
+    \textbf{ID} & \textbf{Categoria} & \textbf{Descrizione} \\
+    \midrule
+    \endfirsthead
+    \toprule
+    \textbf{ID} & \textbf{Categoria} & \textbf{Descrizione} \\
+    \midrule
+    \endhead
+
+    SEC1 & Autenticazione &
+    Username/email + password con hashing PBKDF2-SHA256 (\emph{salt}
+    randomico per record). Le risposte di login non distinguono fra
+    utente inesistente e password errata. \\
+
+    SEC2 & Autorizzazione &
+    Le route protette verificano il JWT tramite \code{@jwt\_required}.
+    Le mutazioni su brani richiedono che
+    \code{song.user\_id == current\_user\_id}. \\
+
+    SEC3 & Anti-spam &
+    La pubblicazione anonima richiede il superamento di una sfida PoW
+    one-shot, marcata atomicamente come consumata via UPDATE WHERE. \\
+
+    SEC4 & Validazione input &
+    Validazione lato server con espressioni regolari su username
+    (\verb|^[A-Za-z0-9_]{3,30}$|), email (regex permissiva), password
+    ($\geq 8$ caratteri, almeno una cifra) e limiti di lunghezza per i
+    campi testuali. \\
+
+    SEC5 & Protezione DoS &
+    Limite del body della richiesta a 256~KB, limiti per campo
+    (50~KB per \code{plainLyrics}, 100~KB per \code{syncedLyrics},
+    300~caratteri per i campi anagrafici). \\
+
+    SEC6 & Cifratura in transito (deferred) &
+    In produzione: terminazione TLS a livello di reverse proxy con header
+    HSTS. \\
+
+    SEC7 & Cifratura at-rest (deferred) &
+    In produzione: cifratura del filesystem dove risiede \code{lyrics.db}. \\
+
+    SEC8 & Logging (deferred) &
+    Log strutturato dei login falliti e delle azioni di pubblicazione,
+    con rotazione su file. \\
+
+    SEC9 & Backup (deferred) &
+    Snapshot periodico del file SQLite con retention $\geq 7$ giorni. \\
+
+    SEC10 & Conformità --- GDPR &
+    Trattamento dei dati personali documentato; endpoint
+    \code{DELETE /auth/me} previsto come estensione futura per il
+    diritto all'oblio. \\
+
+    \bottomrule
+    \caption{Requisiti di sicurezza.}
+\end{longtable}

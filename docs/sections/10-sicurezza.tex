@@ -1,0 +1,170 @@
+\section{Analisi degli aspetti di sicurezza}\label{sec:sicurezza}
+
+L'analisi di sicurezza copre i principali pilastri del modello CIA
+(\emph{Confidentiality, Integrity, Availability}) ed è suddivisa fra
+\emph{controlli già implementati nel codice} e \emph{controlli previsti
+come future work} (rinviati alla fase di produzione).
+
+\subsection{Modello di minaccia}
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{@{}p{4.5cm}X@{}}
+        \toprule
+        \textbf{Minaccia} & \textbf{Mitigazione adottata} \\
+        \midrule
+        Credential stuffing &
+        Hashing password lento (PBKDF2-SHA256, $\sim 600k$ iterazioni di
+        default) $+$ rate limit (deferred). \\
+        User enumeration &
+        Risposte unificate su login fallito (\code{InvalidCredentialsError},
+        HTTP 401) anche quando l'utente non esiste. \\
+        Timing attack &
+        \code{check\_password\_hash} di werkzeug è constant-time e viene
+        chiamato anche su utenti inesistenti. \\
+        Replay del token JWT &
+        Scadenza breve dell'\emph{access token} (30 min); \emph{refresh
+        token} revocabile lato server come future work (blacklist Redis). \\
+        Spam di pubblicazioni anonime &
+        Sfida Proof of Work obbligatoria; token consumato in maniera
+        atomica via \code{UPDATE WHERE used = 0} con check del
+        \code{rowcount}. \\
+        Privilege escalation &
+        Le route \endpoint{PUT}{/api/songs/<id>} ed
+        \endpoint{DELETE}{/api/songs/<id>} verificano che
+        \code{song.user\_id == current\_user\_id}. \\
+        Attacchi DoS via payload abnorme &
+        \code{MAX\_CONTENT\_LENGTH = 256\,KB} a livello WSGI; limiti
+        per-campo (50~KB \code{plainLyrics}, 100~KB \code{syncedLyrics},
+        300 char titolo) a livello applicativo. \\
+        SQL injection &
+        Uso esclusivo dell'ORM SQLAlchemy con parametri \emph{bound}; nessun
+        \code{text()} o concatenazione di stringhe. \\
+        XSS / CSRF &
+        API stateless con token in header \code{Authorization} (non
+        cookie); CSRF non applicabile. XSS prevenuto da rendering React
+        Native (no \code{innerHTML}). \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Modello di minaccia e mitigazioni.}
+\end{table}
+
+\subsection{Autenticazione e gestione utenti}
+\begin{itemize}
+    \item Password con hashing \textbf{PBKDF2-SHA256} e salt randomico di
+    16 byte (defaults di \code{werkzeug.security.generate\_password\_hash}).
+    \item Validazione lato server: username
+    \verb|^[A-Za-z0-9_]{3,30}$|, email regex, password $\geq 8$ caratteri
+    con almeno una cifra.
+    \item Univocità di username ed email è verificata case-insensitive.
+    \item Il login accetta indistintamente username o email come
+    identificatore.
+\end{itemize}
+
+\subsection{Crittografia delle comunicazioni}
+\begin{itemize}
+    \item In \textbf{sviluppo}: HTTP su rete locale.
+    \item In \textbf{produzione} (deferred): TLS terminato da reverse proxy
+    (\emph{nginx} o \emph{Caddy}) con certificato \emph{Let's Encrypt} e
+    header \code{Strict-Transport-Security: max-age=31536000; includeSubDomains}.
+\end{itemize}
+
+\subsection{Protezione dei dati a riposo}
+\begin{itemize}
+    \item Le password sono memorizzate solo come hash; il valore in chiaro
+    non viene mai loggato né serializzato.
+    \item Il database SQLite vive in un singolo file (\code{lyrics.db}); in
+    produzione si raccomanda cifratura del filesystem o uso di SQLCipher.
+    \item I JWT non vengono persistiti lato server: sono \emph{stateless} e
+    autocontenuti.
+\end{itemize}
+
+\subsection{Gestione delle vulnerabilità}
+\begin{itemize}
+    \item Dipendenze pinnate in \code{requirements.txt} (Python) e
+    \code{package.json} (Node).
+    \item Audit periodico previsto con \code{pip-audit} e \code{npm audit}
+    (deferred).
+\end{itemize}
+
+\subsection{Backup e ripristino}
+\begin{itemize}
+    \item \textbf{Sviluppo:} nessun backup automatico; il file SQLite è
+    contenuto nel volume del progetto.
+    \item \textbf{Produzione (deferred):} snapshot giornaliero del file
+    \code{lyrics.db} con retention di 7 giorni; copia offsite via
+    \code{rsync} verso storage cifrato.
+\end{itemize}
+
+\subsection{Monitoraggio e logging}
+\begin{itemize}
+    \item \textbf{Sviluppo:} log su stdout dal Werkzeug dev server.
+    \item \textbf{Produzione (deferred):} logging strutturato in JSON con
+    rotazione (\emph{RotatingFileHandler}) e aggregatore esterno
+    (Loki/ELK). Eventi tracciati: login falliti, pubblicazioni, mutazioni
+    su risorse.
+\end{itemize}
+
+\subsection{Conformità legale}
+\subsubsection{GDPR (Regolamento UE 2016/679)}
+\begin{itemize}
+    \item \textbf{Dati personali raccolti:} username, email, hash della
+    password, data di creazione.
+    \item \textbf{Base giuridica:} consenso esplicito al momento della
+    registrazione.
+    \item \textbf{Diritto di accesso:} fornito tramite l'endpoint
+    \endpoint{GET}{/auth/me}.
+    \item \textbf{Diritto all'oblio:} previsto come estensione futura
+    (\endpoint{DELETE}{/auth/me}) con cancellazione del record User e
+    anonimizzazione dei brani associati (\code{user\_id = NULL}).
+    \item \textbf{Cifratura}: in produzione tutti i dati personali
+    transitano cifrati via TLS.
+\end{itemize}
+
+\subsubsection{Diritto d'autore sui testi}
+I testi pubblicati possono essere soggetti a copyright. Il sistema si
+qualifica come \emph{piattaforma di hosting di contenuti utente} e adotta
+le seguenti misure (alcune deferred):
+\begin{itemize}
+    \item Termini di servizio espliciti che vietano l'upload di materiale
+    protetto di cui l'utente non detenga i diritti.
+    \item Endpoint di \emph{takedown} per la rimozione su segnalazione del
+    titolare dei diritti (deferred).
+    \item Attribuzione dei contributi tramite il campo \code{submittedBy}
+    per rendere tracciabili gli autori dei caricamenti.
+\end{itemize}
+
+\subsection{Mitigazioni implementate (riepilogo)}
+\begin{enumerate}
+    \item Hash password PBKDF2-SHA256 con salt.
+    \item Risposte uniformi sul login fallito (no user enumeration).
+    \item Controllo della password con tempo costante anche per utenti
+    inesistenti.
+    \item JWT firmati HS256 con scadenza differenziata access/refresh.
+    \item Proof of Work one-shot atomico (\code{UPDATE WHERE used = 0}).
+    \item Limite globale del body (\code{MAX\_CONTENT\_LENGTH = 256 KB}).
+    \item Limiti dimensionali per campo (50~KB plain, 100~KB synced,
+    300~char titolo, 0--7200~s durata).
+    \item Autorizzazione su \code{PUT}/\code{DELETE} dei brani con check di
+    proprietà.
+    \item ORM SQLAlchemy con parametri bound (no SQL injection).
+    \item Validazione regex su username/email/password lato server.
+    \item Error handler globali 404/405/500 senza leak di stack trace.
+\end{enumerate}
+
+\subsection{Mitigazioni deferred to production}
+\begin{enumerate}
+    \item TLS terminator e HSTS.
+    \item Rate limiting su login/register/publish/request-challenge.
+    \item Token blacklist server-side per logout effettivo.
+    \item Cookie \code{httpOnly} + \code{Secure} + \code{SameSite=Strict}
+    per il refresh token (in alternativa allo storage client).
+    \item Logging strutturato e aggregatore esterno.
+    \item Backup periodico cifrato del DB.
+    \item Cifratura del filesystem (o SQLCipher).
+    \item Endpoint \endpoint{DELETE}{/auth/me} per il diritto all'oblio
+    GDPR.
+    \item Endpoint \emph{takedown} per la rimozione di contenuti su
+    segnalazione.
+    \item Audit periodico delle dipendenze con \code{pip-audit} e
+    \code{npm audit}.
+\end{enumerate}

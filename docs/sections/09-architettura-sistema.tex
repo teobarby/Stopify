@@ -1,0 +1,108 @@
+\section{Architettura del sistema}
+
+\subsection{Diagramma a blocchi}
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=\textwidth]{architettura-blocchi.png}
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \TODO{Inserire diagramma a blocchi dell'architettura. Componenti:
+        Mobile App (Expo/RN) $\leftrightarrow$ HTTPS/JSON $\leftrightarrow$
+        Flask Backend (Routes $\to$ Services $\to$ Models $\to$ SQLAlchemy)
+        $\leftrightarrow$ SQLite.}
+        \vspace{1em}}}
+    \caption{Architettura a blocchi del sistema.}
+    \label{fig:arch}
+\end{figure}
+
+\subsection{Suddivisione in strati del backend}
+Il backend è organizzato secondo il pattern \emph{Routes $\to$ Services $\to$
+Models}, con utility trasversali.
+
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{@{}lX@{}}
+        \toprule
+        \textbf{Strato} & \textbf{Responsabilità} \\
+        \midrule
+        \code{app/routes/} &
+        Punti di ingresso HTTP. Parsing del payload, dispatch ai servizi,
+        formattazione della risposta JSON, mapping degli errori in codici
+        di stato. \\
+        \code{app/services/} &
+        Logica di business. Transazioni, eccezioni di dominio
+        (\code{PublishError}, \code{AuthError}), verifica PoW, controlli di
+        autorizzazione. \\
+        \code{app/models/} &
+        Definizione delle classi SQLAlchemy: \code{Artist}, \code{Album},
+        \code{Song}, \code{User}, \code{PowChallenge}. Metodi di
+        serializzazione (\code{to\_dict}, \code{to\_lrclib}). \\
+        \code{app/utils/} &
+        Helper trasversali: encoder/decoder LRC, utility crittografiche
+        (token, hashing). \\
+        \code{app/config.py} &
+        Configurazione (env-aware): URI database, chiavi JWT, scadenze
+        token, limiti dimensionali, difficoltà PoW. \\
+        \code{app/extensions.py} &
+        Singleton delle estensioni Flask (db, jwt, cors, migrate). \\
+        \code{main.py} &
+        Entrypoint: app factory, seeding del catalogo iniziale, avvio del
+        server di sviluppo. \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Layout del backend.}
+\end{table}
+
+\subsection{Suddivisione del frontend mobile}
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{@{}lX@{}}
+        \toprule
+        \textbf{Cartella/File} & \textbf{Ruolo} \\
+        \midrule
+        \code{app/} & Schermate (file-based routing di expo-router). \\
+        \code{app/\_layout.tsx} & Root layout, registra \code{AuthProvider}. \\
+        \code{app/index.tsx} & Home con stato di connessione e pillola profilo. \\
+        \code{app/search.tsx} & Ricerca interattiva. \\
+        \code{app/explore.tsx} & Catalogo paginato con ordinamento. \\
+        \code{app/song/[id].tsx} & Dettaglio brano con testo piano e sincronizzato. \\
+        \code{app/publish.tsx} & Form di pubblicazione (JWT o PoW). \\
+        \code{app/login.tsx}, \code{register.tsx} & Schermate auth. \\
+        \code{app/my-lyrics.tsx} & Elenco delle pubblicazioni dell'utente. \\
+        \code{app/edit-song/[id].tsx} & Form di modifica. \\
+        \code{src/api.ts} & Client REST con auto-refresh del JWT. \\
+        \code{src/AuthContext.tsx} & Stato globale dell'autenticazione. \\
+        \code{src/storage.ts} & Wrapper cross-platform per la persistenza dei token. \\
+        \code{src/dialog.ts} & Alert/confirm cross-platform (mobile e web). \\
+        \code{src/sha256.ts} & Implementazione client di SHA-256 per la PoW. \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Layout del frontend mobile.}
+\end{table}
+
+\subsection{Schema del database}
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=\textwidth]{schema-db.png}
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \TODO{Inserire diagramma ER del database (entità: users, artists,
+        albums, songs, pow\_challenges; chiavi e foreign key).}
+        \vspace{1em}}}
+    \caption{Schema entità-relazione del database.}
+    \label{fig:schema-db}
+\end{figure}
+
+\subsubsection{Tabelle principali}
+\begin{itemize}
+    \item \code{users} \emph{(id, username, email, password\_hash, created\_at)} ---
+    utenti registrati. Username ed email univoci (case-insensitive).
+    \item \code{artists} \emph{(id, name, created\_at)} --- artisti, nome
+    univoco.
+    \item \code{albums} \emph{(id, title, year, artist\_id, created\_at)} ---
+    album opzionalmente associati a un brano.
+    \item \code{songs} \emph{(id, title, artist\_id, album\_id, lyrics,
+    synced\_lyrics, duration, instrumental, user\_id, created\_at)} ---
+    brani con testo piano e sincronizzato. \code{user\_id} nullable: \code{NULL}
+    indica un brano anonimo (pubblicato via PoW).
+    \item \code{pow\_challenges} \emph{(id, token, difficulty, used, created\_at)} ---
+    sfide PoW emesse e consumate.
+\end{itemize}
