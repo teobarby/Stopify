@@ -14,8 +14,8 @@ class Config:
 
     # JWT
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "super-secret-key")
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=30)
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
+    # Token unico a lunga scadenza: nessun refresh token per semplicità.
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
 
     # Generic Flask secret
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production")
@@ -25,3 +25,10 @@ class Config:
 
     # Proof of Work — numero di zeri esadecimali iniziali richiesti dal SHA-256
     POW_DIFFICULTY = 4
+
+    # ── Bootstrap dell'utente amministratore ────────────────────────────────
+    # Al primo avvio (se non esiste già nessun admin nel DB), viene creato
+    # automaticamente un utente con questi valori.
+    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+    ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@stopify.local")
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")

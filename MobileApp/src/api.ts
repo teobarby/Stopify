@@ -63,17 +63,16 @@ export interface AuthUser {
   id: number;
   username: string;
   email: string;
+  is_admin: boolean;
   created_at: string;
 }
 
 export interface AuthSession {
   user: AuthUser;
   accessToken: string;
-  refreshToken: string;
 }
 
 const TOKEN_KEY = "stopify.access";
-const REFRESH_KEY = "stopify.refresh";
 
 // ─── Token storage helpers ───────────────────────────────────────────────────
 
@@ -81,18 +80,11 @@ export const tokens = {
   async getAccess(): Promise<string | null> {
     return storage.get(TOKEN_KEY);
   },
-  async getRefresh(): Promise<string | null> {
-    return storage.get(REFRESH_KEY);
-  },
-  async save(accessToken: string, refreshToken?: string): Promise<void> {
+  async save(accessToken: string): Promise<void> {
     await storage.set(TOKEN_KEY, accessToken);
-    if (refreshToken) {
-      await storage.set(REFRESH_KEY, refreshToken);
-    }
   },
   async clear(): Promise<void> {
     await storage.del(TOKEN_KEY);
-    await storage.del(REFRESH_KEY);
   },
 };
 
@@ -128,26 +120,12 @@ async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   };
 
-  let res = await fetch(`${BASE_URL}${path}`, init);
+  const res = await fetch(`${BASE_URL}${path}`, init);
 
-  // Auto-refresh on 401 if we have a refresh token
+  // Token scaduto/invalido: pulisci storage e lascia che il chiamante
+  // gestisca l'errore (di norma reindirizzando a /login).
   if (res.status === 401 && opts.authed) {
-    const refresh = await tokens.getRefresh();
-    if (refresh) {
-      const r = await fetch(`${BASE_URL}/auth/refresh`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${refresh}` },
-      });
-      if (r.ok) {
-        const data = await r.json();
-        await tokens.save(data.accessToken);
-        headers["Authorization"] = `Bearer ${data.accessToken}`;
-        res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
-      } else {
-        // Refresh failed → logout
-        await tokens.clear();
-      }
-    }
+    await tokens.clear();
   }
 
   let data: any = null;
@@ -279,22 +257,40 @@ export const api = {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
-  /** POST /auth/register → user + access + refresh (auto-saves tokens) */
+  /** POST /auth/register → user + access (auto-saves token) */
   async register(body: { username: string; email: string; password: string }): Promise<AuthSession> {
     const data = await post<AuthSession>("/auth/register", body);
-    await tokens.save(data.accessToken, data.refreshToken);
+    await tokens.save(data.accessToken);
     return data;
   },
 
-  /** POST /auth/login → user + access + refresh (auto-saves tokens) */
+  /** POST /auth/login → user + access (auto-saves token) */
   async login(usernameOrEmail: string, password: string): Promise<AuthSession> {
     const data = await post<AuthSession>("/auth/login", { usernameOrEmail, password });
-    await tokens.save(data.accessToken, data.refreshToken);
+    await tokens.save(data.accessToken);
     return data;
   },
 
   /** GET /auth/me → user (richiede access token) */
   me: () => request<{ user: AuthUser }>("/auth/me", { authed: true }),
+
+  // ── Admin (richiede JWT + is_admin) ───────────────────────────────────────
+
+  /**
+   * GET /admin/songs → lista LrclibSong (intero catalogo, anche anonimi).
+   * Filtri opzionali: q (titolo/artista), anonymous (solo anonimi), userId.
+   */
+  adminListSongs: (opts: { q?: string; anonymous?: boolean; userId?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.q) params.set("q", opts.q);
+    if (opts.anonymous) params.set("anonymous", "true");
+    if (opts.userId != null) params.set("user_id", String(opts.userId));
+    const qs = params.toString();
+    return request<LrclibSong[]>(
+      `/admin/songs${qs ? `?${qs}` : ""}`,
+      { authed: true }
+    );
+  },
 
   /** Logout client-side (cancella i token; non chiama il server) */
   async logout() {

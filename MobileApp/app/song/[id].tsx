@@ -261,9 +261,8 @@ export default function SongDetailScreen() {
                     In ascolto
                 </ThemedText>
 
-                <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
-                    <Ionicons name="ellipsis-horizontal" size={20} color="white" />
-                </TouchableOpacity>
+                {/* Spacer per mantenere il titolo perfettamente centrato */}
+                <View style={styles.iconBtnPlaceholder} />
             </View>
 
             <Animated.View
@@ -634,6 +633,11 @@ const styles = StyleSheet.create({
         left: -80,
     },
 
+    iconBtnPlaceholder: {
+        width: 40,
+        height: 40,
+    },
+
     center: {
         flex: 1,
         justifyContent: "center",
@@ -681,7 +685,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         letterSpacing: 1.5,
         textTransform: "uppercase",
-        fontWeight: "700",
     },
 
     iconBtn: {

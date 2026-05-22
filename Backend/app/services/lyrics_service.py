@@ -328,13 +328,21 @@ def _resolve_artist_album(artist_name: str, album_name: str | None):
     return artist, album
 
 
-def update_song(song_id: int, payload: dict, user_id: int) -> Song:
+def update_song(
+    song_id: int,
+    payload: dict,
+    user_id: int,
+    is_admin: bool = False,
+) -> Song:
     """
-    Aggiorna un brano esistente. Solo il `submittedBy` può modificarlo.
+    Aggiorna un brano esistente.
+    Solo il `submittedBy` può modificarlo, salvo che l'utente sia admin
+    (in tal caso il check di proprietà viene bypassato e si può modificare
+    anche un brano anonimo).
 
     Solleva PublishError con status:
       404 - brano inesistente
-      403 - brano anonimo o non di proprietà dell'utente
+      403 - brano anonimo o non di proprietà dell'utente (non-admin)
       400 - body malformato
       422 - campi obbligatori mancanti
     """
@@ -342,17 +350,18 @@ def update_song(song_id: int, payload: dict, user_id: int) -> Song:
     if song is None:
         raise PublishError("Brano non trovato", 404)
 
-    if song.user_id is None:
-        raise PublishError(
-            "Questo brano è anonimo e non può essere modificato",
-            403,
-        )
+    if not is_admin:
+        if song.user_id is None:
+            raise PublishError(
+                "Questo brano è anonimo e non può essere modificato",
+                403,
+            )
 
-    if song.user_id != user_id:
-        raise PublishError(
-            "Non sei l'autore di questo brano",
-            403,
-        )
+        if song.user_id != user_id:
+            raise PublishError(
+                "Non sei l'autore di questo brano",
+                403,
+            )
 
     if not payload:
         raise PublishError("Body JSON non valido o assente", 400)
@@ -392,23 +401,62 @@ def update_song(song_id: int, payload: dict, user_id: int) -> Song:
     return song
 
 
-def delete_song(song_id: int, user_id: int) -> None:
+def delete_song(
+    song_id: int,
+    user_id: int,
+    is_admin: bool = False,
+) -> None:
     """
-    Cancella un brano. Solo il `submittedBy` può cancellarlo.
+    Cancella un brano.
+    Solo il `submittedBy` può cancellarlo, salvo che l'utente sia admin
+    (in tal caso il check di proprietà viene bypassato e si può cancellare
+    anche un brano anonimo).
     Solleva PublishError 404/403 in caso di errore.
     """
     song = Song.query.get(song_id)
     if song is None:
         raise PublishError("Brano non trovato", 404)
 
-    if song.user_id is None:
-        raise PublishError(
-            "Questo brano è anonimo e non può essere cancellato",
-            403,
-        )
+    if not is_admin:
+        if song.user_id is None:
+            raise PublishError(
+                "Questo brano è anonimo e non può essere cancellato",
+                403,
+            )
 
-    if song.user_id != user_id:
-        raise PublishError("Non sei l'autore di questo brano", 403)
+        if song.user_id != user_id:
+            raise PublishError("Non sei l'autore di questo brano", 403)
 
     db.session.delete(song)
     db.session.commit()
+
+
+# ─── Admin: vista completa del catalogo ──────────────────────────────────────
+
+def list_all_songs(q: str = "", only_anonymous: bool = False, user_id: int | None = None):
+    """
+    Ritorna tutti i brani del catalogo (incluso quelli anonimi).
+
+    Filtri opzionali:
+      q              ricerca su titolo o nome artista (LIKE)
+      only_anonymous se True ritorna solo brani con user_id=NULL
+      user_id        se non None filtra per autore specifico
+    """
+    query = (
+        Song.query
+        .join(Artist, Song.artist_id == Artist.id)
+        .outerjoin(Album, Song.album_id == Album.id)
+    )
+
+    if q:
+        pattern = f"%{q}%"
+        query = query.filter(
+            db.or_(Song.title.ilike(pattern), Artist.name.ilike(pattern))
+        )
+
+    if only_anonymous:
+        query = query.filter(Song.user_id.is_(None))
+    elif user_id is not None:
+        query = query.filter(Song.user_id == user_id)
+
+    return query.order_by(Song.created_at.desc()).all()

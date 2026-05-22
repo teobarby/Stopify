@@ -22,6 +22,7 @@ from app.services.crypto_service import (
     generate_token,
     parse_publish_token,
 )
+from app.services.auth_service import get_user_by_id
 from app.services.lyrics_service import (
     PublishError,
     delete_song,
@@ -226,14 +227,18 @@ def my_songs():
 @jwt_required()
 def update_my_song(song_id: int):
     """
-    Aggiorna un brano. Richiede JWT e che `song.user_id == current_user`.
+    Aggiorna un brano. Richiede JWT e che `song.user_id == current_user`,
+    oppure che l'utente sia admin (bypass del check di proprietà).
     Body identico al POST /api/publish.
     """
     user_id = int(get_jwt_identity())
     payload = request.get_json(silent=True)
 
+    user = get_user_by_id(user_id)
+    is_admin = bool(user and user.is_admin)
+
     try:
-        song = update_song(song_id, payload, user_id)
+        song = update_song(song_id, payload, user_id, is_admin=is_admin)
     except PublishError as e:
         body = {"statusCode": e.status, "error": "PublishError", "message": e.message}
         body.update(e.extra)
@@ -248,12 +253,16 @@ def update_my_song(song_id: int):
 @jwt_required()
 def delete_my_song(song_id: int):
     """
-    Cancella un brano. Richiede JWT e che `song.user_id == current_user`.
+    Cancella un brano. Richiede JWT e che `song.user_id == current_user`,
+    oppure che l'utente sia admin (bypass del check di proprietà).
     """
     user_id = int(get_jwt_identity())
 
+    user = get_user_by_id(user_id)
+    is_admin = bool(user and user.is_admin)
+
     try:
-        delete_song(song_id, user_id)
+        delete_song(song_id, user_id, is_admin=is_admin)
     except PublishError as e:
         body = {"statusCode": e.status, "error": "PublishError", "message": e.message}
         body.update(e.extra)

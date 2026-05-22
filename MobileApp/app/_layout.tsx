@@ -61,6 +61,9 @@ export default function RootLayout() {
                     <Stack.Screen name="my-lyrics" />
                     <Stack.Screen name="edit-song/[id]" />
 
+                    {/* ADMIN */}
+                    <Stack.Screen name="admin" />
+
                     {/* MODAL */}
                     <Stack.Screen
                         name="modal"

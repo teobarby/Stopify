@@ -23,10 +23,11 @@ def create_app(config_class: type = Config) -> Flask:
     from app import models  # noqa: F401
 
     # Blueprint
-    from app.routes import auth_bp, lrclib_bp, lyrics_bp
+    from app.routes import admin_bp, auth_bp, lrclib_bp, lyrics_bp
     app.register_blueprint(lrclib_bp)  # /api/*  (spec LRCLIB)
     app.register_blueprint(lyrics_bp)  # /search, /songs, /explore, /artists, /albums, /health
     app.register_blueprint(auth_bp)    # /auth/*
+    app.register_blueprint(admin_bp)   # /admin/*
 
     # Error handlers
     @app.errorhandler(404)

@@ -8,11 +8,56 @@ Usage:
 
 import json
 
+from werkzeug.security import generate_password_hash
+
 from app import create_app
 from app.extensions import db
-from app.models import Album, Artist, Song
+from app.models import Album, Artist, Song, User
 
 app = create_app()
+
+
+# ─── Bootstrap admin ─────────────────────────────────────────────────────────
+
+def _seed_admin():
+    """
+    Crea l'utente amministratore al primo avvio, leggendo le credenziali da
+    config (ADMIN_USERNAME / ADMIN_EMAIL / ADMIN_PASSWORD).
+
+    Idempotente: se esiste già un utente con quello username o un qualsiasi
+    altro admin, non fa nulla. Serve solo a garantire che ci sia sempre
+    almeno un admin nel sistema.
+    """
+    username = app.config.get("ADMIN_USERNAME", "admin")
+    email = app.config.get("ADMIN_EMAIL", "admin@stopify.local")
+    password = app.config.get("ADMIN_PASSWORD", "admin123")
+
+    # Se esiste già almeno un admin nel sistema, non creare nulla
+    if User.query.filter_by(is_admin=True).first() is not None:
+        return
+
+    # Se esiste già un utente con quello username, promuovilo ad admin
+    existing = User.query.filter(
+        db.func.lower(User.username) == username.lower()
+    ).first()
+    if existing is not None:
+        existing.is_admin = True
+        db.session.commit()
+        print(f"✅ Utente esistente '{username}' promosso ad admin.")
+        return
+
+    admin = User(
+        username=username,
+        email=email.lower(),
+        password_hash=generate_password_hash(password),
+        is_admin=True,
+    )
+    db.session.add(admin)
+    db.session.commit()
+    print(
+        f"✅ Admin creato: username='{username}', password='{password}' "
+        f"(cambialo via env ADMIN_PASSWORD)."
+    )
 
 
 # ─── Catalogo di seed (testi originali) ──────────────────────────────────────
@@ -179,4 +224,5 @@ if __name__ == "__main__":
         db.create_all()
         if Artist.query.count() == 0:
             _seed()
+        _seed_admin()
     app.run(host="0.0.0.0", port=5000, debug=True)

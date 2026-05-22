@@ -235,6 +235,33 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </Link>
             ) : null}
+
+            {/* Pannello admin: visibile solo se user.is_admin */}
+            {user?.is_admin ? (
+                <Link href="/admin" asChild>
+                  <TouchableOpacity activeOpacity={0.85}>
+                    <BlurView
+                        intensity={25}
+                        tint="dark"
+                        style={styles.adminPill}
+                    >
+                      <Ionicons
+                          name="shield-checkmark"
+                          size={18}
+                          color="#FCD34D"
+                      />
+                      <ThemedText style={styles.adminPillText}>
+                        Pannello admin
+                      </ThemedText>
+                      <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color="#94A3B8"
+                      />
+                    </BlurView>
+                  </TouchableOpacity>
+                </Link>
+            ) : null}
           </View>
 
           {/* FOOTER */}
@@ -466,6 +493,27 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 14,
     fontWeight: "600",
+  },
+
+  adminPill: {
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#FCD34D44",
+    backgroundColor: "#FCD34D0A",
+  },
+
+  adminPillText: {
+    flex: 1,
+    color: "#FCD34D",
+    fontSize: 14,
+    fontWeight: "700",
   },
 
   cardTitle: {
