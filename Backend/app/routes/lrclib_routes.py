@@ -16,7 +16,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.extensions import db
 from app.models.challenge import PowChallenge
-from app.models.lyrics import Album, Artist, Song
+from app.models.lyrics import Song
 from app.services.crypto_service import (
     difficulty_to_target,
     generate_token,
@@ -32,17 +32,9 @@ from app.services.lyrics_service import (
     search_songs,
     update_song,
 )
+from app.routes._helpers import make_error as _err
 
 lrclib_bp = Blueprint("lrclib", __name__, url_prefix="/api")
-
-
-# ─── Errori in stile LRCLIB ──────────────────────────────────────────────────
-
-def _err(code: str, status: int, message: str):
-    return (
-        jsonify({"statusCode": status, "error": code, "message": message}),
-        status,
-    )
 
 
 # ─── GET /api/get ────────────────────────────────────────────────────────────
@@ -94,7 +86,8 @@ def get_lyrics_cached():
 
 @lrclib_bp.route("/get/<int:song_id>", methods=["GET"])
 def get_lyrics_by_id(song_id: int):
-    song = Song.query.get(song_id)
+    from app.extensions import db
+    song = db.session.get(Song, song_id)
     if not song:
         return _err("TrackNotFoundError", 404, "Lyrics non trovate")
     return jsonify(song.to_lrclib()), 200
@@ -201,7 +194,7 @@ def publish():
     try:
         song = publish_song_lrclib(payload, prefix=prefix, nonce=nonce, user_id=user_id)
     except PublishError as e:
-        body = {"statusCode": e.status, "error": "PublishError", "message": e.message}
+        body = {"statusCode": e.status, "error": e.code, "message": e.message}
         body.update(e.extra)
         return jsonify(body), e.status
 
@@ -240,7 +233,7 @@ def update_my_song(song_id: int):
     try:
         song = update_song(song_id, payload, user_id, is_admin=is_admin)
     except PublishError as e:
-        body = {"statusCode": e.status, "error": "PublishError", "message": e.message}
+        body = {"statusCode": e.status, "error": e.code, "message": e.message}
         body.update(e.extra)
         return jsonify(body), e.status
 
@@ -264,7 +257,7 @@ def delete_my_song(song_id: int):
     try:
         delete_song(song_id, user_id, is_admin=is_admin)
     except PublishError as e:
-        body = {"statusCode": e.status, "error": "PublishError", "message": e.message}
+        body = {"statusCode": e.status, "error": e.code, "message": e.message}
         body.update(e.extra)
         return jsonify(body), e.status
 

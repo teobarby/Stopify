@@ -52,7 +52,7 @@ export default function EditSongScreen() {
         if (!songId) return;
         (async () => {
             try {
-                const s = await api.getLRCLIB(songId);
+                const s = await api.getSong(songId);
                 setSong(s);
                 setTrackName(s.trackName || "");
                 setArtistName(s.artistName || "");

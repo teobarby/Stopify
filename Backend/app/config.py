@@ -14,8 +14,8 @@ class Config:
 
     # JWT
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "super-secret-key")
-    # Token unico a lunga scadenza: nessun refresh token per semplicità.
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=30)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
 
     # Generic Flask secret
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-me-in-production")

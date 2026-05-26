@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { ThemedText } from "@/components/themed-text";
-import { api, Song } from "../src/api";
+import { api, LrclibSong } from "../src/api";
 
 const PRIMARY = "#4A90E2";
 
@@ -29,7 +29,7 @@ export default function SearchScreen() {
   const router = useRouter();
 
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Song[]>([]);
+  const [results, setResults] = useState<LrclibSong[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
@@ -45,7 +45,7 @@ export default function SearchScreen() {
 
     try {
       const data = await api.search({ q });
-      setResults(data.results);
+      setResults(data);
     } catch {
       setError("Ricerca fallita. Riprova.");
       setResults([]);
@@ -54,7 +54,7 @@ export default function SearchScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: Song }) => (
+  const renderItem = ({ item }: { item: LrclibSong }) => (
       <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => router.push(`/song/${item.id}`)}
@@ -70,12 +70,12 @@ export default function SearchScreen() {
 
           <View style={styles.cardBody}>
             <ThemedText numberOfLines={1} style={styles.songTitle}>
-              {item.title}
+              {item.trackName}
             </ThemedText>
 
             <ThemedText numberOfLines={1} style={styles.songMeta}>
-              {item.artist}
-              {item.album ? ` • ${item.album}` : ""}
+              {item.artistName}
+              {item.albumName ? ` • ${item.albumName}` : ""}
             </ThemedText>
           </View>
 

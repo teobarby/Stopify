@@ -2,13 +2,15 @@
 Route di autenticazione:
 
   POST /auth/register   - crea un nuovo utente
-  POST /auth/login      - emette access token
+  POST /auth/login      - emette access + refresh token
+  POST /auth/refresh    - rinnova l'access token tramite refresh token
   GET  /auth/me         - info utente corrente (richiede access token)
 """
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     create_access_token,
+    create_refresh_token,
     get_jwt_identity,
     jwt_required,
 )
@@ -38,6 +40,7 @@ def _auth_error(e: AuthError):
 def _issue_tokens(user_id: int) -> dict:
     return {
         "accessToken": create_access_token(identity=str(user_id)),
+        "refreshToken": create_refresh_token(identity=str(user_id)),
     }
 
 
@@ -88,6 +91,19 @@ def login():
         "user": user.to_dict(),
         **_issue_tokens(user.id),
     }), 200
+
+
+# ─── POST /auth/refresh ──────────────────────────────────────────────────────
+
+@auth_bp.route("/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh():
+    """
+    Rinnova l'access token usando il refresh token.
+    Header: Authorization: Bearer <refresh_token>
+    """
+    user_id = get_jwt_identity()
+    return jsonify({"accessToken": create_access_token(identity=user_id)}), 200
 
 
 # ─── GET /auth/me ────────────────────────────────────────────────────────────

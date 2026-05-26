@@ -23,33 +23,13 @@ export interface Album {
   artist_id: number;
 }
 
-export interface Song {
-  id: number;
-  title: string;
-  artist: string;
-  artist_id: number;
-  album: string | null;
-  album_id: number | null;
-  created_at: string;
-}
-
-export interface SongDetail extends Song {
-  lyrics: string;
-  synced_lyrics: string | null; // JSON string → [{time, line}]
-}
-
 export interface SyncedLine {
   time: number;
   line: string;
 }
 
-export interface SearchResult {
-  results: Song[];
-  count: number;
-}
-
 export interface ExploreResult {
-  songs: Song[];
+  songs: LrclibSong[];
   total: number;
   page: number;
   pages: number;
@@ -70,9 +50,11 @@ export interface AuthUser {
 export interface AuthSession {
   user: AuthUser;
   accessToken: string;
+  refreshToken: string;
 }
 
 const TOKEN_KEY = "stopify.access";
+const REFRESH_KEY = "stopify.refresh";
 
 // ─── Token storage helpers ───────────────────────────────────────────────────
 
@@ -80,11 +62,16 @@ export const tokens = {
   async getAccess(): Promise<string | null> {
     return storage.get(TOKEN_KEY);
   },
-  async save(accessToken: string): Promise<void> {
+  async getRefresh(): Promise<string | null> {
+    return storage.get(REFRESH_KEY);
+  },
+  async save(accessToken: string, refreshToken?: string): Promise<void> {
     await storage.set(TOKEN_KEY, accessToken);
+    if (refreshToken) await storage.set(REFRESH_KEY, refreshToken);
   },
   async clear(): Promise<void> {
     await storage.del(TOKEN_KEY);
+    await storage.del(REFRESH_KEY);
   },
 };
 
@@ -98,10 +85,29 @@ interface FetchOptions {
   authed?: boolean;
 }
 
-async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    ...(opts.headers || {}),
-  };
+/** Tenta di rinnovare l'access token usando il refresh token salvato. */
+async function tryRefreshToken(): Promise<string | null> {
+  const refreshToken = await tokens.getRefresh();
+  if (!refreshToken) return null;
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${refreshToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data as { accessToken?: string }).accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function request<T>(
+  path: string,
+  opts: FetchOptions = {},
+  _retry = false
+): Promise<T> {
+  const headers: Record<string, string> = { ...(opts.headers || {}) };
 
   if (opts.body) {
     headers["Content-Type"] = "application/json";
@@ -109,9 +115,7 @@ async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
 
   if (opts.authed) {
     const access = await tokens.getAccess();
-    if (access) {
-      headers["Authorization"] = `Bearer ${access}`;
-    }
+    if (access) headers["Authorization"] = `Bearer ${access}`;
   }
 
   const init: RequestInit = {
@@ -122,9 +126,13 @@ async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
 
   const res = await fetch(`${BASE_URL}${path}`, init);
 
-  // Token scaduto/invalido: pulisci storage e lascia che il chiamante
-  // gestisca l'errore (di norma reindirizzando a /login).
-  if (res.status === 401 && opts.authed) {
+  // Token scaduto: prova a rinnovarlo (una sola volta) poi riprova la chiamata.
+  if (res.status === 401 && opts.authed && !_retry) {
+    const newAccess = await tryRefreshToken();
+    if (newAccess) {
+      await tokens.save(newAccess);
+      return request<T>(path, opts, true);
+    }
     await tokens.clear();
   }
 
@@ -136,8 +144,7 @@ async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const msg =
-        (data && (data.message || data.error)) || `HTTP ${res.status}`;
+    const msg = (data && (data.message || data.error)) || `HTTP ${res.status}`;
     throw new Error(msg);
   }
 
@@ -187,7 +194,7 @@ export const api = {
     const qs = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v) as [string, string][]
     ).toString();
-    return get<SearchResult>(`/search?${qs}`);
+    return get<LrclibSong[]>(`/search?${qs}`);
   },
 
   /** GET /explore?page=&limit=&sort= */
@@ -195,7 +202,7 @@ export const api = {
     get<ExploreResult>(`/explore?page=${page}&limit=${limit}&sort=${sort}`),
 
   /** GET /songs/:id */
-  getSong: (id: number) => get<SongDetail>(`/songs/${id}`),
+  getSong: (id: number) => get<LrclibSong>(`/songs/${id}`),
 
   /** GET /artists */
   getArtists: () => get<Artist[]>("/artists"),
@@ -231,9 +238,6 @@ export const api = {
     });
   },
 
-  /** GET /api/get/<id> → LRCLIB shape */
-  getLRCLIB: (id: number) => get<LrclibSong>(`/api/get/${id}`),
-
   // ── Gestione brani propri (richiedono JWT) ─────────────────────────────
 
   /** GET /api/me/songs → lista LrclibSong */
@@ -257,17 +261,17 @@ export const api = {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
-  /** POST /auth/register → user + access (auto-saves token) */
+  /** POST /auth/register → user + access + refresh (auto-saves tokens) */
   async register(body: { username: string; email: string; password: string }): Promise<AuthSession> {
     const data = await post<AuthSession>("/auth/register", body);
-    await tokens.save(data.accessToken);
+    await tokens.save(data.accessToken, data.refreshToken);
     return data;
   },
 
-  /** POST /auth/login → user + access (auto-saves token) */
+  /** POST /auth/login → user + access + refresh (auto-saves tokens) */
   async login(usernameOrEmail: string, password: string): Promise<AuthSession> {
     const data = await post<AuthSession>("/auth/login", { usernameOrEmail, password });
-    await tokens.save(data.accessToken);
+    await tokens.save(data.accessToken, data.refreshToken);
     return data;
   },
 

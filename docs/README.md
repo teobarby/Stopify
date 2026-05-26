@@ -57,7 +57,7 @@ Il backend implementa l'intera specifica LRCLIB richiesta dalla traccia del prog
 | RF5 | Pubblicazione di nuove lyrics | `POST /api/publish` | POST |
 | RF6 | Richiesta challenge Proof of Work | `POST /api/request-challenge` | POST |
 | RF7 | Registrazione e autenticazione utente | `/auth/register`, `/auth/login` | POST |
-| RF8 | Rinnovo access token | `/auth/refresh` | POST |
+| RF8 | Rinnovo access token tramite refresh token | `/auth/refresh` | POST |
 
 ### Requisiti non funzionali
 
@@ -294,8 +294,8 @@ Richiede **uno tra**:
 |---|---|---|
 | `POST /auth/register` | `{username, email, password}` | `{user, accessToken, refreshToken}` |
 | `POST /auth/login` | `{usernameOrEmail, password}` | `{user, accessToken, refreshToken}` |
-| `POST /auth/refresh` | `Authorization: Bearer <refresh>` | `{accessToken}` |
-| `GET  /auth/me` | `Authorization: Bearer <access>` | `{user}` |
+| `POST /auth/refresh` | `Authorization: Bearer <refreshToken>` | `{accessToken}` |
+| `GET  /auth/me` | `Authorization: Bearer <accessToken>` | `{user}` |
 
 **Validazione registrazione:**
 - `username` — `^[A-Za-z0-9_]{3,30}$`
@@ -338,7 +338,7 @@ La pubblicazione di lyrics supporta due flussi distinti, permettendo sia utenti 
 | Identity claim | `user.id` (stringa) |
 | Trasporto | Header `Authorization: Bearer <token>` |
 
-L'app mobile persiste i token con `expo-secure-store` (Keychain su iOS, Keystore su Android) e implementa **auto-refresh trasparente**: se una richiesta fallisce con `401`, il client tenta automaticamente un refresh e ripete la chiamata originale — l'utente non percepisce l'interruzione.
+L'app mobile persiste entrambi i token con `expo-secure-store` (Keychain su iOS, Keystore su Android) e implementa **auto-refresh trasparente** in `src/api.ts`: se una richiesta autenticata fallisce con `401`, il client chiama `POST /auth/refresh` con il refresh token, salva il nuovo access token e ripete la chiamata originale — tutto in modo trasparente per l'utente. Il retry avviene al massimo una volta per richiesta per evitare loop infiniti.
 
 ### Proof of Work (LRCLIB-style)
 
@@ -369,7 +369,7 @@ Il PoW è il meccanismo scelto dalla specifica LRCLIB per **rallentare lo spam d
 |---|---|---|
 | Hash password | PBKDF2-SHA256 con salt randomico per ogni record (`werkzeug.security`) | OWASP Password Storage |
 | JWT firmati | HS256, scadenza 30 min (access) / 7 giorni (refresh) | RFC 7519 |
-| Constant-time check | La verifica password ha tempo costante anche per utenti inesistenti, prevenendo timing attack | OWASP Auth Cheat Sheet |
+| Constant-time check | `check_password_hash` viene chiamato sempre (anche se l'utente non esiste) usando un hash fittizio `_DUMMY_HASH`, così entrambi i branch hanno lo stesso costo computazionale | OWASP Auth Cheat Sheet |
 | Risposta unificata | Login fallito → `InvalidCredentialsError` indipendentemente dalla causa (user non esiste / password errata), per prevenire user enumeration | OWASP |
 | Validazione input | Regex lato server su username, email e password | — |
 | PoW one-shot | Ogni challenge token è valido una sola volta; riuso → rifiuto | Specifica LRCLIB |
@@ -421,7 +421,9 @@ source ../venv/bin/activate          # Windows: ..\venv\Scripts\activate
 # 2. Installa le dipendenze
 pip install -r requirements.txt
 
-# 3. Migrazione idempotente del DB (aggiunge colonne nuove se necessario)
+# 3. Migrazione idempotente del DB
+#    Crea le tabelle se non esistono e aggiunge le colonne aggiunte dopo la
+#    prima release (idempotente: sicuro da rieseguire su un DB già aggiornato).
 python migrate.py
 
 # 4. Avvio del server di sviluppo
@@ -514,10 +516,10 @@ Stopify/
 
 ## 11. Test
 
-Il backend espone un test client Flask in-process. I test sono organizzati in due script ad hoc:
+Il backend espone un test client Flask in-process. I test sono organizzati in due script:
 
-- **Test API LRCLIB** — verifica `/api/get`, `/api/get-cached`, `/api/search`, `/api/request-challenge`, `/api/publish` (sia via PoW sia via JWT)
-- **Test auth flow** — register, login con username e con email, refresh token, `/auth/me`, rifiuto credenziali invalide, rifiuto token riutilizzati
+- **`test_endpoints.py`** — verifica `/api/get`, `/api/get-cached`, `/api/search`, `/api/request-challenge`, `/api/publish` (sia via PoW sia via JWT), rifiuto PoW già usato
+- **`test_auth.py`** — register, login con username e con email, refresh token, `/auth/me`, rifiuto credenziali invalide, user enumeration uniforme, token scambiati (access usato come refresh)
 
 Esecuzione su database di test isolato:
 

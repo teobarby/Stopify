@@ -20,7 +20,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
-import { api, Song } from "../src/api";
+import { api, LrclibSong } from "../src/api";
 
 type SortMode = "recent" | "title" | "artist";
 
@@ -51,7 +51,7 @@ const SORT_OPTIONS: {
 export default function ExploreScreen() {
   const router = useRouter();
 
-  const [songs, setSongs] = useState<Song[]>([]);
+  const [songs, setSongs] = useState<LrclibSong[]>([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
 
@@ -113,7 +113,7 @@ export default function ExploreScreen() {
   const renderItem = ({
                         item,
                       }: {
-    item: Song;
+    item: LrclibSong;
   }) => (
       <TouchableOpacity
           activeOpacity={0.85}
@@ -143,22 +143,22 @@ export default function ExploreScreen() {
                 numberOfLines={1}
                 style={styles.songTitle}
             >
-              {item.title}
+              {item.trackName}
             </ThemedText>
 
             <ThemedText
                 numberOfLines={1}
                 style={styles.artist}
             >
-              {item.artist}
+              {item.artistName}
             </ThemedText>
 
-            {item.album ? (
+            {item.albumName ? (
                 <ThemedText
                     numberOfLines={1}
                     style={styles.album}
                 >
-                  {item.album}
+                  {item.albumName}
                 </ThemedText>
             ) : null}
           </View>

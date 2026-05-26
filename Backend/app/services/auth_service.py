@@ -13,6 +13,10 @@ from typing import Optional
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
+# Hash fittizio usato per la verifica a tempo costante quando l'utente non esiste,
+# così il branch "utente non trovato" e "password errata" hanno lo stesso timing.
+_DUMMY_HASH: str = generate_password_hash("dummy-constant-time-placeholder")
+
 from app.extensions import db
 from app.models.user import User
 
@@ -121,9 +125,13 @@ def authenticate_user(identifier: str, password: str) -> User:
         )
     ).first()
 
-    # Verifica anche se l'utente non esiste, per costanza temporale.
-    # check_password_hash è già constant-time internamente.
-    if not user or not check_password_hash(user.password_hash, password):
+    # Chiama sempre check_password_hash (anche quando user è None) per evitare
+    # timing attack: il ramo "utente non esiste" non deve essere più veloce
+    # del ramo "password sbagliata".
+    hash_to_check = user.password_hash if user else _DUMMY_HASH
+    password_ok = check_password_hash(hash_to_check, password)
+
+    if not user or not password_ok:
         raise AuthError("InvalidCredentialsError", "Credenziali non valide", 401)
 
     return user

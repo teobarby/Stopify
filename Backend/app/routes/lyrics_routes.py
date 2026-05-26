@@ -9,6 +9,7 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
+from app.extensions import db
 from app.models.lyrics import Album, Artist, Song
 from app.services.lyrics_service import explore_songs, search_songs
 
@@ -32,7 +33,7 @@ def get_artists():
 
 @lyrics_bp.route("/artists/<int:artist_id>", methods=["GET"])
 def get_artist(artist_id):
-    artist = Artist.query.get_or_404(artist_id)
+    artist = db.get_or_404(Artist, artist_id)
     data = artist.to_dict()
     data["songs"] = [s.to_dict() for s in artist.songs]
     return jsonify(data), 200
@@ -60,15 +61,15 @@ def search():
     album = request.args.get("album", "").strip()
 
     songs = search_songs(q=q, title=title, artist=artist, album=album)
-    return jsonify({"results": [s.to_dict() for s in songs], "count": len(songs)}), 200
+    return jsonify([s.to_lrclib() for s in songs]), 200
 
 
 # ─── Singolo brano ───────────────────────────────────────────────────────────
 
 @lyrics_bp.route("/songs/<int:song_id>", methods=["GET"])
 def get_song(song_id):
-    song = Song.query.get_or_404(song_id)
-    return jsonify(song.to_dict(full=True)), 200
+    song = db.get_or_404(Song, song_id)
+    return jsonify(song.to_lrclib()), 200
 
 
 # ─── Esplora (catalogo paginato) ─────────────────────────────────────────────
@@ -82,7 +83,7 @@ def explore():
     pagination = explore_songs(page=page, limit=limit, sort=sort)
 
     return jsonify({
-        "songs": [s.to_dict() for s in pagination.items],
+        "songs": [s.to_lrclib() for s in pagination.items],
         "total": pagination.total,
         "page": page,
         "pages": pagination.pages,

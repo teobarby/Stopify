@@ -60,75 +60,57 @@ def explore_songs(page: int = 1, limit: int = 20, sort: str = "recent"):
 # ─── Pubblicazione (con PoW) ─────────────────────────────────────────────────
 
 class PublishError(Exception):
-    """Errore durante la pubblicazione: include status HTTP suggerito."""
+    """Errore durante la pubblicazione: include status HTTP e codice errore."""
 
-    def __init__(self, message: str, status: int = 400, extra: Optional[dict] = None):
+    def __init__(
+        self,
+        message: str,
+        status: int = 400,
+        extra: Optional[dict] = None,
+        code: str = "PublishError",
+    ):
         super().__init__(message)
         self.message = message
         self.status = status
         self.extra = extra or {}
+        self.code = code
 
 
-# ─── Limiti dimensionali sui campi del payload ───────────────────────────────
-#
-# Difesa anti-DoS: blocca payload abnormi senza dover affidarsi solo al
-# limite globale `MAX_CONTENT_LENGTH`. I valori sono volutamente generosi
-# per accettare brani lunghi (es. opera lirica) ma fermare upload sproporzionati.
+# ─── Helper comune per la validazione e il parsing del payload ───────────────
 
-MAX_TITLE_LEN = 300        # allineato allo schema DB
-MAX_ARTIST_LEN = 200
-MAX_ALBUM_LEN = 300
-MAX_PLAIN_LYRICS_LEN = 50_000     # ~50 KB di testo puro
-MAX_SYNCED_LYRICS_LEN = 100_000   # ~100 KB (timestamp aggiungono peso)
-MAX_DURATION_SEC = 7_200          # 2 ore (oltre è sospetto)
-MIN_DURATION_SEC = 0
-
-
-def _validate_payload_lengths(payload: dict) -> None:
+def _parse_song_payload(payload: dict) -> dict:
     """
-    Solleva PublishError(422) se uno dei campi di lunghezza variabile
-    eccede i limiti. Da chiamare DOPO il check dei campi obbligatori.
+    Valida e normalizza i campi comuni a publish e update.
+    Restituisce un dict con le chiavi pronte per il costruttore di Song.
+    Solleva PublishError in caso di errori.
     """
-    checks = [
-        ("trackName",     MAX_TITLE_LEN,         payload.get("trackName")),
-        ("artistName",    MAX_ARTIST_LEN,        payload.get("artistName")),
-        ("albumName",     MAX_ALBUM_LEN,         payload.get("albumName")),
-        ("plainLyrics",   MAX_PLAIN_LYRICS_LEN,  payload.get("plainLyrics")),
-        ("syncedLyrics",  MAX_SYNCED_LYRICS_LEN, payload.get("syncedLyrics")),
-    ]
-    for field, limit, value in checks:
-        if value is None:
-            continue
-        if not isinstance(value, str):
-            raise PublishError(
-                f"Il campo '{field}' deve essere una stringa",
-                422,
-            )
-        if len(value) > limit:
-            raise PublishError(
-                f"Il campo '{field}' eccede la lunghezza massima "
-                f"({len(value)} > {limit} caratteri)",
-                422,
-                {"field": field, "max": limit, "got": len(value)},
-            )
+    if not payload:
+        raise PublishError("Body JSON non valido o assente", 400, code="BadRequestError")
 
-    # Durata: accetta anche string-numeric (es. "180.5") e numeri.
+    required = ["trackName", "artistName", "plainLyrics"]
+    missing = [f for f in required if not str(payload.get(f, "")).strip()]
+    if missing:
+        raise PublishError(
+            f"Campi mancanti: {', '.join(missing)}", 422, code="MissingFieldsError"
+        )
+
     duration = payload.get("duration")
-    if duration is not None and duration != "":
-        try:
-            d = float(duration)
-        except (TypeError, ValueError):
-            raise PublishError(
-                "Il campo 'duration' deve essere numerico",
-                422,
-            )
-        if d < MIN_DURATION_SEC or d > MAX_DURATION_SEC:
-            raise PublishError(
-                f"La durata deve essere compresa tra {MIN_DURATION_SEC} "
-                f"e {MAX_DURATION_SEC} secondi",
-                422,
-                {"min": MIN_DURATION_SEC, "max": MAX_DURATION_SEC},
-            )
+    try:
+        duration = float(duration) if duration is not None else None
+    except (TypeError, ValueError):
+        duration = None
+
+    synced_lrc = payload.get("syncedLyrics")
+
+    return {
+        "title": str(payload["trackName"]).strip(),
+        "artist_name": str(payload["artistName"]).strip(),
+        "album_name": (str(payload.get("albumName", "") or "").strip() or None),
+        "lyrics": str(payload["plainLyrics"]).strip(),
+        "synced_json": lrc_to_json(synced_lrc) if synced_lrc else None,
+        "duration": duration,
+        "instrumental": bool(payload.get("instrumental", False)),
+    }
 
 
 # ─── LRCLIB-style: ricerca per signature ─────────────────────────────────────
@@ -196,15 +178,7 @@ def publish_song_lrclib(
 
     Se entrambi sono assenti, solleva PublishError 401.
     """
-    if not payload:
-        raise PublishError("Body JSON non valido o assente", 400)
-
-    required = ["trackName", "artistName", "plainLyrics"]
-    missing = [f for f in required if not str(payload.get(f, "")).strip()]
-    if missing:
-        raise PublishError(f"Campi mancanti: {', '.join(missing)}", 422)
-
-    _validate_payload_lengths(payload)
+    fields = _parse_song_payload(payload)
 
     # ── Autorizzazione: JWT _o_ PoW ──────────────────────────────────────────
     if user_id is None:
@@ -213,11 +187,14 @@ def publish_song_lrclib(
                 "Autenticazione richiesta: fornisci un Bearer token "
                 "oppure un X-Publish-Token (prefix:nonce)",
                 401,
+                code="AuthRequiredError",
             )
 
         challenge = PowChallenge.query.filter_by(token=prefix, used=False).first()
         if not challenge:
-            raise PublishError("Token PoW non valido o già utilizzato", 403)
+            raise PublishError(
+                "Token PoW non valido o già utilizzato", 403, code="InvalidPowToken"
+            )
 
         target = difficulty_to_target(challenge.difficulty)
         if not verify_pow(prefix, nonce, target):
@@ -225,13 +202,11 @@ def publish_song_lrclib(
                 "Proof of Work non superata",
                 403,
                 {"target": target},
+                code="PowVerificationFailed",
             )
 
-        # ── Marca atomicamente la challenge come usata ──────────────────────
         # UPDATE ... WHERE used=False garantisce che solo UNA richiesta
         # concorrente con lo stesso prefix:nonce passi qui (rowcount = 1).
-        # Tutte le altre vedono rowcount = 0 e vengono rifiutate, evitando
-        # double-publish in race condition.
         result = db.session.execute(
             db.update(PowChallenge)
             .where(
@@ -244,49 +219,22 @@ def publish_song_lrclib(
             raise PublishError(
                 "Token PoW già consumato da un'altra richiesta concorrente",
                 409,
+                code="PowTokenConsumed",
             )
         db.session.flush()
 
     # ── Risoluzione/creazione artist & album ────────────────────────────────
-    artist_name = str(payload["artistName"]).strip()
-    artist = Artist.query.filter(Artist.name.ilike(artist_name)).first()
-    if not artist:
-        artist = Artist(name=artist_name)
-        db.session.add(artist)
-        db.session.flush()
-
-    album = None
-    album_name = str(payload.get("albumName", "") or "").strip()
-    if album_name:
-        album = Album.query.filter(
-            Album.title.ilike(album_name),
-            Album.artist_id == artist.id,
-        ).first()
-        if not album:
-            album = Album(title=album_name, artist_id=artist.id)
-            db.session.add(album)
-            db.session.flush()
+    artist, album = _resolve_artist_album(fields["artist_name"], fields["album_name"])
 
     # ── Creazione brano ─────────────────────────────────────────────────────
-    duration = payload.get("duration")
-    try:
-        duration = float(duration) if duration is not None else None
-    except (TypeError, ValueError):
-        duration = None
-
-    synced_lrc = payload.get("syncedLyrics")
-    synced_json = lrc_to_json(synced_lrc) if synced_lrc else None
-
-    instrumental = bool(payload.get("instrumental", False))
-
     song = Song(
-        title=str(payload["trackName"]).strip(),
+        title=fields["title"],
         artist_id=artist.id,
         album_id=album.id if album else None,
-        lyrics=str(payload["plainLyrics"]).strip(),
-        synced_lyrics=synced_json,
-        duration=duration,
-        instrumental=instrumental,
+        lyrics=fields["lyrics"],
+        synced_lyrics=fields["synced_json"],
+        duration=fields["duration"],
+        instrumental=fields["instrumental"],
         user_id=user_id,
     )
     db.session.add(song)
@@ -336,66 +284,39 @@ def update_song(
 ) -> Song:
     """
     Aggiorna un brano esistente.
-    Solo il `submittedBy` può modificarlo, salvo che l'utente sia admin
-    (in tal caso il check di proprietà viene bypassato e si può modificare
-    anche un brano anonimo).
+    Solo il `submittedBy` può modificarlo, salvo che l'utente sia admin.
 
     Solleva PublishError con status:
       404 - brano inesistente
       403 - brano anonimo o non di proprietà dell'utente (non-admin)
-      400 - body malformato
-      422 - campi obbligatori mancanti
+      400/422 - body malformato o campi obbligatori mancanti
     """
-    song = Song.query.get(song_id)
+    song = db.session.get(Song, song_id)
     if song is None:
-        raise PublishError("Brano non trovato", 404)
+        raise PublishError("Brano non trovato", 404, code="TrackNotFoundError")
 
     if not is_admin:
         if song.user_id is None:
             raise PublishError(
                 "Questo brano è anonimo e non può essere modificato",
                 403,
+                code="ForbiddenError",
             )
-
         if song.user_id != user_id:
             raise PublishError(
-                "Non sei l'autore di questo brano",
-                403,
+                "Non sei l'autore di questo brano", 403, code="ForbiddenError"
             )
 
-    if not payload:
-        raise PublishError("Body JSON non valido o assente", 400)
+    fields = _parse_song_payload(payload)
+    artist, album = _resolve_artist_album(fields["artist_name"], fields["album_name"])
 
-    required = ["trackName", "artistName", "plainLyrics"]
-    missing = [f for f in required if not str(payload.get(f, "")).strip()]
-    if missing:
-        raise PublishError(f"Campi mancanti: {', '.join(missing)}", 422)
-
-    _validate_payload_lengths(payload)
-
-    artist, album = _resolve_artist_album(
-        artist_name=str(payload["artistName"]).strip(),
-        album_name=(str(payload.get("albumName", "") or "").strip() or None),
-    )
-
-    # Durata
-    duration = payload.get("duration")
-    try:
-        duration = float(duration) if duration is not None else None
-    except (TypeError, ValueError):
-        duration = None
-
-    # Synced lyrics (LRC → JSON)
-    synced_lrc = payload.get("syncedLyrics")
-    synced_json = lrc_to_json(synced_lrc) if synced_lrc else None
-
-    song.title = str(payload["trackName"]).strip()
+    song.title = fields["title"]
     song.artist_id = artist.id
     song.album_id = album.id if album else None
-    song.lyrics = str(payload["plainLyrics"]).strip()
-    song.synced_lyrics = synced_json
-    song.duration = duration
-    song.instrumental = bool(payload.get("instrumental", False))
+    song.lyrics = fields["lyrics"]
+    song.synced_lyrics = fields["synced_json"]
+    song.duration = fields["duration"]
+    song.instrumental = fields["instrumental"]
 
     db.session.commit()
     return song
@@ -408,24 +329,24 @@ def delete_song(
 ) -> None:
     """
     Cancella un brano.
-    Solo il `submittedBy` può cancellarlo, salvo che l'utente sia admin
-    (in tal caso il check di proprietà viene bypassato e si può cancellare
-    anche un brano anonimo).
+    Solo il `submittedBy` può cancellarlo, salvo che l'utente sia admin.
     Solleva PublishError 404/403 in caso di errore.
     """
-    song = Song.query.get(song_id)
+    song = db.session.get(Song, song_id)
     if song is None:
-        raise PublishError("Brano non trovato", 404)
+        raise PublishError("Brano non trovato", 404, code="TrackNotFoundError")
 
     if not is_admin:
         if song.user_id is None:
             raise PublishError(
                 "Questo brano è anonimo e non può essere cancellato",
                 403,
+                code="ForbiddenError",
             )
-
         if song.user_id != user_id:
-            raise PublishError("Non sei l'autore di questo brano", 403)
+            raise PublishError(
+                "Non sei l'autore di questo brano", 403, code="ForbiddenError"
+            )
 
     db.session.delete(song)
     db.session.commit()

@@ -360,13 +360,15 @@ export default function PublishScreen() {
   );
 }
 
-function InputField({
-                      label,
-                      icon,
-                      value,
-                      onChangeText,
-                      placeholder,
-                    }: any) {
+interface InputFieldProps {
+  label: string;
+  icon: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+}
+
+function InputField({ label, icon, value, onChangeText, placeholder }: InputFieldProps) {
   return (
       <View style={styles.field}>
         <ThemedText style={styles.label}>

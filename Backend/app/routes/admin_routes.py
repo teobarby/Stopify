@@ -17,17 +17,9 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.services.auth_service import get_user_by_id
 from app.services.lyrics_service import list_all_songs
+from app.routes._helpers import make_error as _err
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
-
-
-# ─── Helper di errore in stile LRCLIB ────────────────────────────────────────
-
-def _err(code: str, status: int, message: str):
-    return (
-        jsonify({"statusCode": status, "error": code, "message": message}),
-        status,
-    )
 
 
 # ─── Decorator @admin_required ───────────────────────────────────────────────

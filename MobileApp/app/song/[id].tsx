@@ -24,7 +24,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
-import { api, SongDetail, SyncedLine } from "../../src/api";
+import { api, LrclibSong, SyncedLine } from "../../src/api";
 
 type TabMode = "plain" | "synced";
 
@@ -68,13 +68,22 @@ function gradientFromString(seed: string): [string, string] {
     return palette[Math.abs(h) % palette.length];
 }
 
+function parseLRC(lrc: string | null): SyncedLine[] {
+    if (!lrc) return [];
+    return lrc.split("\n").flatMap((line) => {
+        const m = line.match(/\[(\d{2}):(\d{2}\.\d+)\]\s*(.*)/);
+        if (!m) return [];
+        return [{ time: parseInt(m[1], 10) * 60 + parseFloat(m[2]), line: m[3] }];
+    });
+}
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function SongDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
 
-    const [song, setSong] = useState<SongDetail | null>(null);
+    const [song, setSong] = useState<LrclibSong | null>(null);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<TabMode>("plain");
     const [currentLine, setCurrentLine] = useState(0);
@@ -116,14 +125,8 @@ export default function SongDetailScreen() {
 
     // ── Synced lyrics parsing (memoized) ─────────────────────────────────────
     const synced: SyncedLine[] = useMemo(() => {
-        if (!song?.synced_lyrics) return [];
-        try {
-            const parsed = JSON.parse(song.synced_lyrics);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    }, [song?.synced_lyrics]);
+        return parseLRC(song?.syncedLyrics ?? null);
+    }, [song?.syncedLyrics]);
 
     const totalDuration = useMemo(() => {
         if (synced.length === 0) return 0;
@@ -131,8 +134,8 @@ export default function SongDetailScreen() {
     }, [synced]);
 
     const verses = useMemo(
-        () => splitVerses(song?.lyrics || ""),
-        [song?.lyrics]
+        () => splitVerses(song?.plainLyrics || ""),
+        [song?.plainLyrics]
     );
 
     // ── Playback ─────────────────────────────────────────────────────────────
@@ -225,7 +228,7 @@ export default function SongDetailScreen() {
         );
     }
 
-    const artGradient = gradientFromString(`${song.artist}-${song.title}`);
+    const artGradient = gradientFromString(`${song.artistName}-${song.trackName}`);
     const progress =
         totalDuration > 0
             ? Math.min(elapsed / totalDuration, 1)
@@ -304,16 +307,16 @@ export default function SongDetailScreen() {
                         </LinearGradient>
 
                         <ThemedText style={styles.title} numberOfLines={2}>
-                            {song.title}
+                            {song.trackName}
                         </ThemedText>
 
                         <TouchableOpacity activeOpacity={0.8}>
                             <ThemedText style={styles.artist}>
-                                {song.artist}
+                                {song.artistName}
                             </ThemedText>
                         </TouchableOpacity>
 
-                        {song.album ? (
+                        {song.albumName ? (
                             <View style={styles.albumPill}>
                                 <Ionicons
                                     name="disc-outline"
@@ -321,7 +324,7 @@ export default function SongDetailScreen() {
                                     color="#94A3B8"
                                 />
                                 <ThemedText style={styles.albumText}>
-                                    {song.album}
+                                    {song.albumName}
                                 </ThemedText>
                             </View>
                         ) : null}
