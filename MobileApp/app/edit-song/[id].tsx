@@ -8,11 +8,9 @@
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    StyleSheet,
     TextInput,
     TouchableOpacity,
     View,
@@ -25,8 +23,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
 import { api, LrclibSong } from "../../src/api";
-
-const PRIMARY = "#4A90E2";
+import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import styles from '@/styles/edit-song.styles';
 
 export default function EditSongScreen() {
     const router = useRouter();
@@ -108,7 +106,7 @@ export default function EditSongScreen() {
     if (loading) {
         return (
             <LinearGradient
-                colors={["#020617", "#0F172A"]}
+                colors={BG_GRADIENT}
                 style={styles.center}
             >
                 <ActivityIndicator color={PRIMARY} size="large" />
@@ -119,7 +117,7 @@ export default function EditSongScreen() {
     if (loadError || !song) {
         return (
             <LinearGradient
-                colors={["#020617", "#0F172A"]}
+                colors={BG_GRADIENT}
                 style={styles.center}
             >
                 <Ionicons
@@ -144,7 +142,7 @@ export default function EditSongScreen() {
 
     return (
         <LinearGradient
-            colors={["#020617", "#0F172A", "#111827"]}
+            colors={BG_GRADIENT}
             style={styles.container}
         >
             <View style={styles.glowOne} />
@@ -220,13 +218,13 @@ export default function EditSongScreen() {
                                 <Ionicons
                                     name="document-text"
                                     size={18}
-                                    color="#94A3B8"
+                                    color={TEXT_MUTED}
                                 />
                                 <TextInput
                                     value={plainLyrics}
                                     onChangeText={setPlainLyrics}
                                     placeholder="Testo del brano…"
-                                    placeholderTextColor="#64748B"
+                                    placeholderTextColor={TEXT_DIM}
                                     multiline
                                     textAlignVertical="top"
                                     style={styles.textArea}
@@ -242,13 +240,13 @@ export default function EditSongScreen() {
                                 <Ionicons
                                     name="pulse"
                                     size={18}
-                                    color="#94A3B8"
+                                    color={TEXT_MUTED}
                                 />
                                 <TextInput
                                     value={syncedLyrics}
                                     onChangeText={setSyncedLyrics}
                                     placeholder={"[00:00.00] prima riga\n[00:04.50] seconda riga"}
-                                    placeholderTextColor="#64748B"
+                                    placeholderTextColor={TEXT_DIM}
                                     multiline
                                     textAlignVertical="top"
                                     style={styles.textAreaSmall}
@@ -278,7 +276,7 @@ export default function EditSongScreen() {
                             disabled={submitting}
                         >
                             <LinearGradient
-                                colors={[PRIMARY, "#2563EB"]}
+                                colors={[PRIMARY, PRIMARY_DEEP]}
                                 style={[
                                     styles.primaryBtn,
                                     submitting && { opacity: 0.7 },
@@ -314,12 +312,12 @@ function Field({ label, icon, value, onChangeText, placeholder, ...rest }: any) 
         <View style={styles.field}>
             <ThemedText style={styles.label}>{label}</ThemedText>
             <View style={styles.inputWrapper}>
-                <Ionicons name={icon} size={18} color="#94A3B8" />
+                <Ionicons name={icon} size={18} color={TEXT_MUTED} />
                 <TextInput
                     value={value}
                     onChangeText={onChangeText}
                     placeholder={placeholder}
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor={TEXT_DIM}
                     style={styles.input}
                     {...rest}
                 />
@@ -327,179 +325,3 @@ function Field({ label, icon, value, onChangeText, placeholder, ...rest }: any) 
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { flex: 1 },
-
-    glowOne: {
-        position: "absolute",
-        width: 280,
-        height: 280,
-        borderRadius: 280,
-        backgroundColor: "#2563EB22",
-        top: -90,
-        right: -70,
-    },
-    glowTwo: {
-        position: "absolute",
-        width: 240,
-        height: 240,
-        borderRadius: 240,
-        backgroundColor: "#7C3AED22",
-        bottom: -70,
-        left: -60,
-    },
-
-    center: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        gap: 12,
-    },
-    errorTitle: {
-        color: "#FCA5A5",
-        fontSize: 16,
-        fontWeight: "600",
-        marginTop: 6,
-    },
-    backCta: {
-        marginTop: 12,
-        paddingHorizontal: 22,
-        paddingVertical: 10,
-        borderRadius: 14,
-        backgroundColor: "#FFFFFF10",
-        borderWidth: 1,
-        borderColor: "#ffffff15",
-    },
-    backCtaText: { color: "white", fontWeight: "600" },
-
-    scroll: {
-        padding: 24,
-        paddingTop: 70,
-        paddingBottom: 40,
-    },
-
-    header: { marginBottom: 24 },
-
-    backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "#FFFFFF10",
-        borderWidth: 1,
-        borderColor: "#ffffff15",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 16,
-    },
-
-    title: {
-        fontSize: 36,
-        lineHeight: 42,
-        fontWeight: "800",
-        color: "white",
-        letterSpacing: -1,
-        paddingVertical: 4,
-        includeFontPadding: false,
-    },
-    subtitle: {
-        color: "#94A3B8",
-        marginTop: 6,
-        fontSize: 13,
-        lineHeight: 19,
-    },
-
-    formCard: {
-        borderRadius: 28,
-        padding: 20,
-        gap: 16,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: "#ffffff10",
-    },
-
-    field: { gap: 8 },
-
-    label: {
-        color: "#CBD5E1",
-        fontSize: 13,
-        fontWeight: "600",
-    },
-
-    inputWrapper: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#ffffff08",
-        borderWidth: 1,
-        borderColor: "#ffffff10",
-        borderRadius: 16,
-        paddingHorizontal: 14,
-        gap: 10,
-    },
-
-    input: {
-        flex: 1,
-        height: 52,
-        color: "white",
-        fontSize: 15,
-    },
-
-    textArea: {
-        flex: 1,
-        minHeight: 160,
-        color: "white",
-        fontSize: 14,
-        paddingTop: 16,
-    },
-
-    textAreaSmall: {
-        flex: 1,
-        minHeight: 100,
-        color: "white",
-        fontSize: 13,
-        paddingTop: 14,
-        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    },
-
-    hint: {
-        color: "#64748B",
-        fontSize: 11,
-    },
-
-    errorBox: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        backgroundColor: "#7F1D1D33",
-        borderWidth: 1,
-        borderColor: "#FCA5A555",
-        borderRadius: 14,
-        padding: 12,
-    },
-
-    errorBoxText: {
-        flex: 1,
-        color: "#FCA5A5",
-        fontSize: 13,
-    },
-
-    primaryBtn: {
-        height: 56,
-        borderRadius: 18,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        marginTop: 4,
-        shadowColor: PRIMARY,
-        shadowOpacity: 0.4,
-        shadowRadius: 14,
-        elevation: 8,
-    },
-
-    primaryBtnText: {
-        color: "white",
-        fontSize: 16,
-        fontWeight: "700",
-    },
-});

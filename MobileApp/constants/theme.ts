@@ -5,6 +5,17 @@
 
 import { Platform } from 'react-native';
 
+export const PRIMARY = '#4A90E2';
+export const PRIMARY_DEEP = '#2563EB';
+
+export const BG_GRADIENT = ["#020617", "#0F172A", "#111827"];
+export const BG_DARK = "#020617";
+export const BG_MID = "#0F172A";
+
+export const TEXT_MUTED = "#94A3B8";
+export const TEXT_DIM = "#64748B";
+export const TEXT_SOFT = "#CBD5E1";
+
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 

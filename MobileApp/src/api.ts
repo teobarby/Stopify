@@ -11,18 +11,6 @@ const BASE_URL =
     ?? "http://localhost:5000";
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
-export interface Artist {
-  id: number;
-  name: string;
-}
-
-export interface Album {
-  id: number;
-  title: string;
-  year: number | null;
-  artist_id: number;
-}
-
 export interface SyncedLine {
   time: number;
   line: string;
@@ -50,11 +38,9 @@ export interface AuthUser {
 export interface AuthSession {
   user: AuthUser;
   accessToken: string;
-  refreshToken: string;
 }
 
 const TOKEN_KEY = "stopify.access";
-const REFRESH_KEY = "stopify.refresh";
 
 // ─── Token storage helpers ───────────────────────────────────────────────────
 
@@ -62,16 +48,11 @@ export const tokens = {
   async getAccess(): Promise<string | null> {
     return storage.get(TOKEN_KEY);
   },
-  async getRefresh(): Promise<string | null> {
-    return storage.get(REFRESH_KEY);
-  },
-  async save(accessToken: string, refreshToken?: string): Promise<void> {
+  async save(accessToken: string): Promise<void> {
     await storage.set(TOKEN_KEY, accessToken);
-    if (refreshToken) await storage.set(REFRESH_KEY, refreshToken);
   },
   async clear(): Promise<void> {
     await storage.del(TOKEN_KEY);
-    await storage.del(REFRESH_KEY);
   },
 };
 
@@ -85,28 +66,7 @@ interface FetchOptions {
   authed?: boolean;
 }
 
-/** Tenta di rinnovare l'access token usando il refresh token salvato. */
-async function tryRefreshToken(): Promise<string | null> {
-  const refreshToken = await tokens.getRefresh();
-  if (!refreshToken) return null;
-  try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${refreshToken}` },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data as { accessToken?: string }).accessToken ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function request<T>(
-  path: string,
-  opts: FetchOptions = {},
-  _retry = false
-): Promise<T> {
+async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
   const headers: Record<string, string> = { ...(opts.headers || {}) };
 
   if (opts.body) {
@@ -118,21 +78,13 @@ async function request<T>(
     if (access) headers["Authorization"] = `Bearer ${access}`;
   }
 
-  const init: RequestInit = {
+  const res = await fetch(`${BASE_URL}${path}`, {
     method: opts.method || "GET",
     headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
-  };
+  });
 
-  const res = await fetch(`${BASE_URL}${path}`, init);
-
-  // Token scaduto: prova a rinnovarlo (una sola volta) poi riprova la chiamata.
-  if (res.status === 401 && opts.authed && !_retry) {
-    const newAccess = await tryRefreshToken();
-    if (newAccess) {
-      await tokens.save(newAccess);
-      return request<T>(path, opts, true);
-    }
+  if (res.status === 401 && opts.authed) {
     await tokens.clear();
   }
 
@@ -186,30 +138,26 @@ export interface LrclibPublishBody {
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 export const api = {
-  /** GET /health */
-  health: () => get<{ status: string }>("/health"),
+  /** GET /api/health */
+  health: () => get<{ status: string }>("/api/health"),
 
-  /** GET /search?q=&title=&artist=&album= */
+  /** GET /api/search?q=&track_name=&artist_name=&album_name= */
   search: (params: { q?: string; title?: string; artist?: string; album?: string }) => {
-    const qs = new URLSearchParams(
-      Object.entries(params).filter(([, v]) => v) as [string, string][]
-    ).toString();
-    return get<LrclibSong[]>(`/search?${qs}`);
+    const mapped: Record<string, string> = {};
+    if (params.q)      mapped.q           = params.q;
+    if (params.title)  mapped.track_name  = params.title;
+    if (params.artist) mapped.artist_name = params.artist;
+    if (params.album)  mapped.album_name  = params.album;
+    const qs = new URLSearchParams(mapped).toString();
+    return get<LrclibSong[]>(`/api/search?${qs}`);
   },
 
-  /** GET /explore?page=&limit=&sort= */
+  /** GET /api/explore?page=&limit=&sort= */
   explore: (page = 1, sort = "recent", limit = 20) =>
-    get<ExploreResult>(`/explore?page=${page}&limit=${limit}&sort=${sort}`),
+    get<ExploreResult>(`/api/explore?page=${page}&limit=${limit}&sort=${sort}`),
 
-  /** GET /songs/:id */
-  getSong: (id: number) => get<LrclibSong>(`/songs/${id}`),
-
-  /** GET /artists */
-  getArtists: () => get<Artist[]>("/artists"),
-
-  /** GET /albums?artist_id= */
-  getAlbums: (artistId?: number) =>
-    get<Album[]>(`/albums${artistId ? `?artist_id=${artistId}` : ""}`),
+  /** GET /api/get/:id */
+  getSong: (id: number) => get<LrclibSong>(`/api/get/${id}`),
 
   // ── LRCLIB-spec ───────────────────────────────────────────────────────────
 
@@ -261,17 +209,17 @@ export const api = {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
-  /** POST /auth/register → user + access + refresh (auto-saves tokens) */
+  /** POST /auth/register → user + access (auto-saves token) */
   async register(body: { username: string; email: string; password: string }): Promise<AuthSession> {
     const data = await post<AuthSession>("/auth/register", body);
-    await tokens.save(data.accessToken, data.refreshToken);
+    await tokens.save(data.accessToken);
     return data;
   },
 
-  /** POST /auth/login → user + access + refresh (auto-saves tokens) */
+  /** POST /auth/login → user + access (auto-saves token) */
   async login(usernameOrEmail: string, password: string): Promise<AuthSession> {
     const data = await post<AuthSession>("/auth/login", { usernameOrEmail, password });
-    await tokens.save(data.accessToken, data.refreshToken);
+    await tokens.save(data.accessToken);
     return data;
   },
 

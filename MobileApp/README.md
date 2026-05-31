@@ -42,14 +42,21 @@ MobileApp/
 │   ├── search.tsx              # Ricerca nel catalogo
 │   ├── explore.tsx             # Catalogo paginato (ordinabile per data / titolo / artista)
 │   ├── publish.tsx             # Pubblicazione lyrics (JWT o PoW)
-│   └── song/[id].tsx           # Dettaglio brano + lyrics sincronizzate
+│   ├── my-lyrics.tsx           # Brani pubblicati dall'utente autenticato
+│   ├── admin.tsx               # Pannello admin (solo is_admin=true)
+│   ├── song/[id].tsx           # Dettaglio brano + lyrics sincronizzate
+│   └── edit-song/[id].tsx      # Modifica un proprio brano
 │
 ├── src/
-│   ├── api.ts                  # Client REST verso il backend + auto-refresh JWT
+│   ├── api.ts                  # Client REST verso il backend
 │   ├── AuthContext.tsx         # Stato di autenticazione globale (React Context)
-│   ├── storage.ts              # Wrapper expo-secure-store con fallback AsyncStorage
+│   ├── storage.ts              # Wrapper expo-secure-store con fallback su localStorage (web)
+│   ├── dialog.ts               # Wrapper cross-platform per Alert e conferme
 │   └── sha256.ts               # SHA-256 client-side per il calcolo del nonce PoW
 │
+├── constants/
+│   └── theme.ts                # Colori condivisi (PRIMARY, BG_GRADIENT, TEXT_MUTED, …)
+├── styles/                     # StyleSheet dedicati per ogni schermata
 ├── components/                 # Componenti riutilizzabili (ThemedText, ThemedView, …)
 ├── hooks/                      # Hook personalizzati
 ├── assets/                     # Immagini, font, icone
@@ -68,13 +75,13 @@ Il routing è gestito da `expo-router`, che mappa automaticamente i file nella c
 
 `AuthContext.tsx` espone un React Context con lo stato globale dell'utente (token JWT, profilo). Tutte le schermate vi accedono tramite un hook `useAuth()`, evitando il prop drilling e centralizzando la logica di login/logout.
 
-### Auto-refresh del JWT
+### Gestione del token scaduto
 
-`src/api.ts` implementa un interceptor che, in caso di risposta `401` dal backend, tenta automaticamente il rinnovo dell'access token tramite il refresh token, poi ripete la chiamata originale. L'utente non percepisce l'interruzione della sessione.
+Alla ricezione di un `401` da qualsiasi endpoint autenticato, `src/api.ts` svuota la sessione locale e reindirizza al login. Il token ha una durata di 30 minuti.
 
 ### Persistenza sicura dei token
 
-I token JWT sono salvati con `expo-secure-store`, che utilizza il Keychain di iOS e il Keystore di Android — entrambi protetti dalla crittografia del dispositivo. Il file `storage.ts` include un fallback su `AsyncStorage` per l'ambiente Web (dove Secure Store non è disponibile).
+I token JWT sono salvati con `expo-secure-store`, che utilizza il Keychain di iOS e il Keystore di Android — entrambi protetti dalla crittografia del dispositivo. Il file `storage.ts` include un fallback su `window.localStorage` per l'ambiente Web (dove Secure Store non è disponibile).
 
 ### Proof of Work client-side
 
@@ -104,14 +111,19 @@ npx expo install expo-secure-store
 
 ### Configurazione rete
 
-Aprire `src/api.ts` e aggiornare `BASE_URL` con l'indirizzo IP della macchina che esegue il backend:
+`BASE_URL` è letto da `app.json → expo.extra.apiBaseUrl` con fallback a `http://localhost:5000`. Per testare su device fisico o emulatore Android, aggiungere l'IP della propria macchina in `app.json`:
 
-```typescript
-// src/api.ts
-const BASE_URL = "http://<IP_DEL_TUO_PC>:5000";
+```json
+{
+  "expo": {
+    "extra": {
+      "apiBaseUrl": "http://192.168.x.x:5000"
+    }
+  }
+}
 ```
 
-> Il valore predefinito `192.168.178.114` è l'IP della macchina di sviluppo originale e non funzionerà su altre reti.
+> Su simulatore iOS e browser web il fallback `localhost:5000` funziona senza modifiche.
 
 ### Avvio
 
@@ -127,7 +139,11 @@ Expo aprirà un QR code nel terminale. Scansionarlo con l'app **Expo Go** per te
 
 Tutti i dettagli sulle API REST sono documentati in [`docs/README.md § API REST`](../docs/README.md#6-api-rest). In sintesi, l'app usa:
 
-- `GET /search`, `GET /explore`, `GET /songs/<id>`, `GET /artists`, `GET /albums` — navigazione del catalogo
-- `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh` — autenticazione
-- `POST /api/request-challenge` + `POST /api/publish` — pubblicazione lyrics (flusso PoW)
-- `POST /api/publish` con `Authorization: Bearer` — pubblicazione lyrics (flusso JWT)
+- `GET /api/search`, `GET /api/explore`, `GET /api/get/<id>` — navigazione del catalogo
+- `POST /auth/register`, `POST /auth/login`, `GET /auth/me` — autenticazione
+- `POST /api/request-challenge` + `POST /api/publish` — pubblicazione lyrics (flusso PoW anonimo)
+- `POST /api/publish` con `Authorization: Bearer` — pubblicazione lyrics (flusso JWT autenticato)
+- `GET /api/me/songs` — lista brani pubblicati dall'utente
+- `PUT /api/songs/<id>` — modifica di un proprio brano
+- `DELETE /api/songs/<id>` — cancellazione di un proprio brano
+- `GET /admin/songs` — catalogo completo (solo admin)

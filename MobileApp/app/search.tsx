@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import {
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -22,8 +21,8 @@ import { useRouter } from "expo-router";
 
 import { ThemedText } from "@/components/themed-text";
 import { api, LrclibSong } from "../src/api";
-
-const PRIMARY = "#4A90E2";
+import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import styles from '@/styles/search.styles';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -62,7 +61,7 @@ export default function SearchScreen() {
       >
         <BlurView intensity={30} tint="dark" style={styles.card}>
           <LinearGradient
-              colors={[PRIMARY, "#2563EB"]}
+              colors={[PRIMARY, PRIMARY_DEEP]}
               style={styles.iconContainer}
           >
             <Ionicons name="musical-notes" size={22} color="white" />
@@ -82,7 +81,7 @@ export default function SearchScreen() {
           <Ionicons
               name="chevron-forward"
               size={20}
-              color="#94A3B8"
+              color={TEXT_MUTED}
           />
         </BlurView>
       </TouchableOpacity>
@@ -90,7 +89,7 @@ export default function SearchScreen() {
 
   return (
       <LinearGradient
-          colors={["#020617", "#0F172A", "#111827"]}
+          colors={BG_GRADIENT}
           style={styles.container}
       >
         <KeyboardAvoidingView
@@ -126,7 +125,7 @@ export default function SearchScreen() {
               <Ionicons
                   name="search"
                   size={20}
-                  color="#94A3B8"
+                  color={TEXT_MUTED}
               />
 
               <TextInput
@@ -134,7 +133,7 @@ export default function SearchScreen() {
                   onChangeText={setQuery}
                   onSubmitEditing={handleSearch}
                   placeholder="Cerca brani o artisti…"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={TEXT_MUTED}
                   style={styles.input}
                   returnKeyType="search"
                   autoFocus
@@ -145,7 +144,7 @@ export default function SearchScreen() {
                     <Ionicons
                         name="close-circle"
                         size={20}
-                        color="#64748B"
+                        color={TEXT_DIM}
                     />
                   </TouchableOpacity>
               )}
@@ -157,7 +156,7 @@ export default function SearchScreen() {
                 disabled={loading}
             >
               <LinearGradient
-                  colors={[PRIMARY, "#2563EB"]}
+                  colors={[PRIMARY, PRIMARY_DEEP]}
                   style={styles.searchButton}
               >
                 {loading ? (
@@ -201,7 +200,7 @@ export default function SearchScreen() {
                                   : "search-outline"
                             }
                             size={42}
-                            color="#CBD5E1"
+                            color={TEXT_SOFT}
                         />
                       </LinearGradient>
 
@@ -224,163 +223,3 @@ export default function SearchScreen() {
       </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 70,
-  },
-
-  header: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF10",
-    borderWidth: 1,
-    borderColor: "#ffffff15",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-
-  title: {
-    fontSize: 42,
-    lineHeight: 50,
-    fontWeight: "800",
-    color: "white",
-    letterSpacing: -1.5,
-    paddingVertical: 4,
-
-    // Android
-    includeFontPadding: false,
-  },
-
-  subtitle: {
-    color: "#94A3B8",
-    marginTop: 6,
-    fontSize: 15,
-  },
-
-  searchContainer: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-
-  searchBar: {
-    flex: 1,
-    height: 58,
-    borderRadius: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-    gap: 10,
-  },
-
-  input: {
-    flex: 1,
-    color: "white",
-    fontSize: 15,
-  },
-
-  searchButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: PRIMARY,
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    elevation: 10,
-  },
-
-  list: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-
-  cardWrapper: {
-    marginBottom: 14,
-  },
-
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 24,
-    padding: 16,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-  },
-
-  iconContainer: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-
-  cardBody: {
-    flex: 1,
-  },
-
-  songTitle: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  songMeta: {
-    color: "#94A3B8",
-    marginTop: 4,
-    fontSize: 13,
-  },
-
-  empty: {
-    alignItems: "center",
-    marginTop: 80,
-    paddingHorizontal: 30,
-  },
-
-  emptyIcon: {
-    width: 110,
-    height: 110,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 22,
-  },
-
-  emptyTitle: {
-    color: "white",
-    fontSize: 22,
-    fontWeight: "700",
-  },
-
-  emptySubtitle: {
-    color: "#94A3B8",
-    textAlign: "center",
-    marginTop: 8,
-    lineHeight: 22,
-    fontSize: 14,
-  },
-
-  errorText: {
-    color: "#EF4444",
-    textAlign: "center",
-    marginBottom: 14,
-    fontSize: 13,
-  },
-});

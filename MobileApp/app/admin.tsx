@@ -1,18 +1,8 @@
-/**
- * admin.tsx
- * Pannello amministratore: lista completa di tutte le canzoni (anche
- * anonime), con possibilità di modificare o cancellare ognuna.
- *
- * Visibile solo agli utenti con `is_admin = true`. Non-admin vengono
- * reindirizzati alla home.
- */
-
 import { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
     RefreshControl,
-    StyleSheet,
     TextInput,
     TouchableOpacity,
     View,
@@ -27,8 +17,9 @@ import { ThemedText } from "@/components/themed-text";
 import { api, LrclibSong } from "../src/api";
 import { useAuth } from "../src/AuthContext";
 import { showAlert, showConfirm } from "../src/dialog";
+import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import styles from '@/styles/admin.styles';
 
-const PRIMARY = "#4A90E2";
 const DANGER = "#FCA5A5";
 
 type Filter = "all" | "anonymous";
@@ -166,13 +157,12 @@ export default function AdminScreen() {
 
     return (
         <LinearGradient
-            colors={["#020617", "#0F172A", "#111827"]}
+            colors={BG_GRADIENT}
             style={styles.container}
         >
             <View style={styles.glowOne} />
             <View style={styles.glowTwo} />
 
-            {/* HEADER */}
             <View style={styles.header}>
                 <TouchableOpacity
                     activeOpacity={0.7}
@@ -201,16 +191,15 @@ export default function AdminScreen() {
                 </ThemedText>
             </View>
 
-            {/* SEARCH + FILTERS */}
             <View style={styles.controls}>
                 <BlurView intensity={25} tint="dark" style={styles.searchBox}>
-                    <Ionicons name="search" size={16} color="#94A3B8" />
+                    <Ionicons name="search" size={16} color={TEXT_MUTED} />
                     <TextInput
                         value={query}
                         onChangeText={setQuery}
                         onSubmitEditing={() => fetchSongs()}
                         placeholder="Cerca per titolo o artista"
-                        placeholderTextColor="#64748B"
+                        placeholderTextColor={TEXT_DIM}
                         style={styles.searchInput}
                         returnKeyType="search"
                     />
@@ -224,7 +213,7 @@ export default function AdminScreen() {
                             <Ionicons
                                 name="close-circle"
                                 size={16}
-                                color="#64748B"
+                                color={TEXT_DIM}
                             />
                         </TouchableOpacity>
                     ) : null}
@@ -304,7 +293,7 @@ export default function AdminScreen() {
                                 <Ionicons
                                     name="albums-outline"
                                     size={42}
-                                    color="#CBD5E1"
+                                    color={TEXT_SOFT}
                                 />
                             </LinearGradient>
                             <ThemedText style={styles.emptyTitle}>
@@ -320,253 +309,3 @@ export default function AdminScreen() {
         </LinearGradient>
     );
 }
-
-const styles = StyleSheet.create({
-    container: { flex: 1, paddingTop: 70 },
-
-    glowOne: {
-        position: "absolute",
-        width: 280,
-        height: 280,
-        borderRadius: 280,
-        backgroundColor: "#FCD34D22",
-        top: -90,
-        right: -70,
-    },
-    glowTwo: {
-        position: "absolute",
-        width: 240,
-        height: 240,
-        borderRadius: 240,
-        backgroundColor: "#7C3AED22",
-        bottom: -70,
-        left: -60,
-    },
-
-    header: {
-        paddingHorizontal: 24,
-        marginBottom: 14,
-    },
-
-    backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "#FFFFFF10",
-        borderWidth: 1,
-        borderColor: "#ffffff15",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 16,
-    },
-
-    adminBadge: {
-        alignSelf: "flex-start",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        backgroundColor: "#FCD34D15",
-        borderColor: "#FCD34D55",
-        borderWidth: 1,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 999,
-        marginBottom: 10,
-    },
-
-    adminBadgeText: {
-        color: "#FCD34D",
-        fontSize: 11,
-        fontWeight: "700",
-        letterSpacing: 0.3,
-    },
-
-    h1: {
-        fontSize: 36,
-        lineHeight: 42,
-        fontWeight: "800",
-        color: "white",
-        letterSpacing: -1,
-        paddingVertical: 4,
-        includeFontPadding: false,
-    },
-
-    subtitle: {
-        color: "#94A3B8",
-        marginTop: 4,
-        fontSize: 13,
-    },
-
-    controls: {
-        paddingHorizontal: 24,
-        marginBottom: 14,
-        gap: 10,
-    },
-
-    searchBox: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 16,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: "#ffffff15",
-    },
-
-    searchInput: {
-        flex: 1,
-        color: "white",
-        fontSize: 14,
-        padding: 0,
-    },
-
-    filterRow: {
-        flexDirection: "row",
-        gap: 8,
-    },
-
-    chip: {
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: 999,
-        backgroundColor: "#FFFFFF08",
-        borderWidth: 1,
-        borderColor: "#ffffff10",
-    },
-
-    chipActive: {
-        backgroundColor: PRIMARY + "33",
-        borderColor: PRIMARY + "77",
-    },
-
-    chipText: {
-        color: "#94A3B8",
-        fontSize: 12,
-        fontWeight: "600",
-    },
-
-    chipTextActive: {
-        color: "white",
-    },
-
-    list: {
-        paddingHorizontal: 20,
-        paddingBottom: 40,
-    },
-
-    card: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 6,
-        padding: 14,
-        marginBottom: 12,
-        borderRadius: 22,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: "#ffffff10",
-    },
-
-    cardBody: {
-        flexDirection: "row",
-        alignItems: "center",
-        flex: 1,
-        gap: 14,
-    },
-
-    iconBox: {
-        width: 46,
-        height: 46,
-        borderRadius: 16,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-
-    title: {
-        color: "white",
-        fontSize: 15,
-        fontWeight: "700",
-    },
-
-    artist: {
-        color: "#CBD5E1",
-        marginTop: 2,
-        fontSize: 12,
-    },
-
-    author: {
-        color: "#64748B",
-        marginTop: 2,
-        fontSize: 11,
-    },
-
-    actions: {
-        flexDirection: "row",
-        gap: 6,
-    },
-
-    actionBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 12,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#FFFFFF08",
-        borderWidth: 1,
-        borderColor: "#ffffff10",
-    },
-
-    deleteBtn: {
-        backgroundColor: "#7F1D1D22",
-        borderColor: "#FCA5A533",
-    },
-
-    errorBox: {
-        marginHorizontal: 24,
-        marginBottom: 14,
-        padding: 12,
-        borderRadius: 16,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: "#FCA5A555",
-    },
-
-    errorText: {
-        flex: 1,
-        color: DANGER,
-        fontSize: 12,
-    },
-
-    empty: {
-        alignItems: "center",
-        marginTop: 60,
-        paddingHorizontal: 24,
-    },
-
-    emptyIcon: {
-        width: 110,
-        height: 110,
-        borderRadius: 32,
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 22,
-    },
-
-    emptyTitle: {
-        color: "white",
-        fontSize: 22,
-        fontWeight: "700",
-    },
-
-    emptySub: {
-        color: "#94A3B8",
-        textAlign: "center",
-        marginTop: 8,
-        fontSize: 13,
-        lineHeight: 19,
-    },
-});

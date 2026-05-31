@@ -31,7 +31,7 @@ Stopify nasce con l'obiettivo di implementare un sistema distribuito client-serv
 
 - **Architettura a strati** (*Routes → Services → Models*) per separare le responsabilità e facilitare la manutenibilità del codice
 - **Comunicazione client-server** tramite API REST in JSON su HTTP
-- **Sicurezza applicativa**: autenticazione con JWT (access + refresh token), hashing delle password con PBKDF2-SHA256 e meccanismo anti-spam Proof of Work
+- **Sicurezza applicativa**: autenticazione con JWT (access token), hashing delle password con PBKDF2-SHA256 e meccanismo anti-spam Proof of Work
 - **Persistenza dei dati** con un database relazionale gestito tramite ORM (SQLAlchemy + SQLite)
 - **Client mobile multipiattaforma** in React Native / Expo (iOS, Android, Web)
 
@@ -57,7 +57,10 @@ Il backend implementa l'intera specifica LRCLIB richiesta dalla traccia del prog
 | RF5 | Pubblicazione di nuove lyrics | `POST /api/publish` | POST |
 | RF6 | Richiesta challenge Proof of Work | `POST /api/request-challenge` | POST |
 | RF7 | Registrazione e autenticazione utente | `/auth/register`, `/auth/login` | POST |
-| RF8 | Rinnovo access token tramite refresh token | `/auth/refresh` | POST |
+| RF8 | Lista brani pubblicati dall'utente autenticato | `GET /api/me/songs` | GET |
+| RF9 | Modifica di un proprio brano | `PUT /api/songs/<id>` | PUT |
+| RF10 | Cancellazione di un proprio brano | `DELETE /api/songs/<id>` | DELETE |
+| RF11 | Vista admin: catalogo completo con filtri | `GET /admin/songs` | GET |
 
 ### Requisiti non funzionali
 
@@ -77,7 +80,7 @@ Il backend implementa l'intera specifica LRCLIB richiesta dalla traccia del prog
 | Web framework | Flask | 3.1 | Leggero, flessibile, ottimo per API REST; ampia documentazione |
 | ORM | Flask-SQLAlchemy | 3.1 | Astrazione sul DB, query parametrizzate (sicurezza SQL injection) |
 | Database | SQLite | embedded | Semplice da deployare senza server separato; adatto al prototipo |
-| Autenticazione | Flask-JWT-Extended | 4.7 | Gestione nativa di access/refresh token con HS256 |
+| Autenticazione | Flask-JWT-Extended | 4.7 | Gestione nativa di access token JWT con HS256 |
 | CORS | Flask-CORS | 6.0 | Necessario per le chiamate cross-origin dall'app mobile |
 | Hashing password | werkzeug.security | — | PBKDF2-SHA256 con salt randomico, già incluso nell'ecosistema Flask |
 | Migrazioni DB | script idempotente (`migrate.py`) | — | Aggiornamento dello schema senza perdita di dati |
@@ -158,9 +161,9 @@ Client HTTP
 ├────────────┤       ├────────────┤       ├────────────┤
 │ id PK      │       │ id PK      │       │ id PK      │
 │ username   │       │ name       │       │ title      │
-│ email      │       │ created_at │       │ year       │
-│ password_  │       └─────┬──────┘       │ artist_id ─┼──┐
-│   hash     │             │              └────────────┘  │
+│ email      │       └─────┬──────┘       │ artist_id ─┼──┐
+│ password_  │             │              └────────────┘  │
+│   hash     │             │                              │
 └─────┬──────┘             │                              │
       │                    │           ┌──────────────────┘
       │ user_id            │ artist_id │ album_id
@@ -202,14 +205,16 @@ Client HTTP
 
 ## 6. API REST
 
-Tutte le risposte sono JSON con codifica UTF-8. Gli errori seguono lo schema LRCLIB:
+Tutte le risposte sono JSON con codifica UTF-8. Gli errori restituiscono un oggetto JSON con il campo `message`:
 
 ```json
-{
-  "statusCode": 404,
-  "error": "TrackNotFoundError",
-  "message": "Lyrics non trovate"
-}
+{ "message": "Lyrics non trovate" }
+```
+
+Gli errori globali (404, 405, 500 non intercettati dalle route) usano il campo `error`:
+
+```json
+{ "error": "Risorsa non trovata" }
 ```
 
 ### Endpoint compatibili LRCLIB (`/api/*`)
@@ -292,9 +297,8 @@ Richiede **uno tra**:
 
 | Endpoint | Body / Header | Risposta |
 |---|---|---|
-| `POST /auth/register` | `{username, email, password}` | `{user, accessToken, refreshToken}` |
-| `POST /auth/login` | `{usernameOrEmail, password}` | `{user, accessToken, refreshToken}` |
-| `POST /auth/refresh` | `Authorization: Bearer <refreshToken>` | `{accessToken}` |
+| `POST /auth/register` | `{username, email, password}` | `{user, accessToken}` |
+| `POST /auth/login` | `{usernameOrEmail, password}` | `{user, accessToken}` |
 | `GET  /auth/me` | `Authorization: Bearer <accessToken>` | `{user}` |
 
 **Validazione registrazione:**
@@ -303,16 +307,12 @@ Richiede **uno tra**:
 - `password` — minimo 8 caratteri, almeno una cifra
 - Username ed email univoci (case-insensitive)
 
-### Endpoint ausiliari (per l'app mobile)
+### Endpoint estensioni app (sotto `/api/*`)
 
 | Endpoint | Descrizione |
 |---|---|
-| `GET /health` | Health-check del server |
-| `GET /search?q=&title=&artist=&album=` | Ricerca (formato snake_case) |
-| `GET /songs/<id>` | Dettaglio brano (formato snake_case) |
-| `GET /explore?page=&limit=&sort=` | Catalogo paginato (`recent` / `title` / `artist`) |
-| `GET /artists` / `/artists/<id>` | Lista / dettaglio artista |
-| `GET /albums?artist_id=` | Lista album di un artista |
+| `GET /api/health` | Health-check del server |
+| `GET /api/explore?page=&limit=&sort=` | Catalogo paginato (`recent` / `title` / `artist`) |
 
 ---
 
@@ -334,11 +334,10 @@ La pubblicazione di lyrics supporta due flussi distinti, permettendo sia utenti 
 |---|---|
 | Algoritmo | HS256 |
 | Access token | durata 30 minuti |
-| Refresh token | durata 7 giorni |
 | Identity claim | `user.id` (stringa) |
 | Trasporto | Header `Authorization: Bearer <token>` |
 
-L'app mobile persiste entrambi i token con `expo-secure-store` (Keychain su iOS, Keystore su Android) e implementa **auto-refresh trasparente** in `src/api.ts`: se una richiesta autenticata fallisce con `401`, il client chiama `POST /auth/refresh` con il refresh token, salva il nuovo access token e ripete la chiamata originale — tutto in modo trasparente per l'utente. Il retry avviene al massimo una volta per richiesta per evitare loop infiniti.
+L'app mobile persiste il token con `expo-secure-store` (Keychain su iOS, Keystore su Android). Alla ricezione di un `401` il client svuota la sessione locale e reindirizza al login.
 
 ### Proof of Work (LRCLIB-style)
 
@@ -368,9 +367,8 @@ Il PoW è il meccanismo scelto dalla specifica LRCLIB per **rallentare lo spam d
 | Misura | Descrizione | Standard di riferimento |
 |---|---|---|
 | Hash password | PBKDF2-SHA256 con salt randomico per ogni record (`werkzeug.security`) | OWASP Password Storage |
-| JWT firmati | HS256, scadenza 30 min (access) / 7 giorni (refresh) | RFC 7519 |
-| Constant-time check | `check_password_hash` viene chiamato sempre (anche se l'utente non esiste) usando un hash fittizio `_DUMMY_HASH`, così entrambi i branch hanno lo stesso costo computazionale | OWASP Auth Cheat Sheet |
-| Risposta unificata | Login fallito → `InvalidCredentialsError` indipendentemente dalla causa (user non esiste / password errata), per prevenire user enumeration | OWASP |
+| JWT firmati | HS256, scadenza 30 min (access token) | RFC 7519 |
+| Risposta unificata | Login fallito → messaggio `"Credenziali non valide"` indipendentemente dalla causa (user non esiste / password errata), per prevenire user enumeration | OWASP |
 | Validazione input | Regex lato server su username, email e password | — |
 | PoW one-shot | Ogni challenge token è valido una sola volta; riuso → rifiuto | Specifica LRCLIB |
 | ORM con bound parameters | Tutte le query passano per SQLAlchemy, eliminando SQL injection | OWASP SQL Injection |
@@ -394,7 +392,7 @@ Il PoW è il meccanismo scelto dalla specifica LRCLIB per **rallentare lo spam d
 |---|---|
 | Credential stuffing | Hash password lento (PBKDF2), rate limit (deferred) |
 | User enumeration | Risposta uniforme su credenziali invalide |
-| Token replay | Scadenza access 30 min; refresh token revocabile lato client |
+| Token replay | Scadenza access token 30 min; logout revoca il token lato client |
 | Spam di pubblicazioni | PoW per anonimi; attribuzione + possibilità di ban per autenticati |
 | SQL injection | SQLAlchemy ORM con query parametrizzate |
 | XSS / CSRF | API stateless con JWT in header (non in cookie) → CSRF non applicabile |
@@ -455,7 +453,10 @@ npx expo install expo-secure-store
 npx expo start
 ```
 
-> ⚠️ **Configurazione rete**: `MobileApp/src/api.ts` punta a `http://192.168.178.114:5000` (IP della macchina di sviluppo). Sostituire con l'IP della propria macchina locale per testare su device fisico o emulatore.
+> ⚠️ **Configurazione rete**: `BASE_URL` viene letto da `app.json → expo.extra.apiBaseUrl` (con fallback a `http://localhost:5000`). Per testare su device fisico o emulatore Android, impostare l'IP della propria macchina in `app.json`:
+> ```json
+> { "expo": { "extra": { "apiBaseUrl": "http://192.168.x.x:5000" } } }
+> ```
 
 ---
 
@@ -468,21 +469,22 @@ Stopify/
 │   │   ├── __init__.py          # App factory + error handlers globali
 │   │   ├── config.py            # Config (env-aware, con fallback per sviluppo)
 │   │   ├── extensions.py        # db, jwt, cors — istanze singleton
+│   │   ├── errors.py            # AppError — eccezione di dominio unificata
 │   │   ├── models/
 │   │   │   ├── lyrics.py        # Artist, Album, Song
 │   │   │   ├── user.py          # User
 │   │   │   └── challenge.py     # PowChallenge
 │   │   ├── routes/
-│   │   │   ├── lrclib_routes.py # /api/* (specifica LRCLIB)
+│   │   │   ├── lrclib_routes.py # /api/* (LRCLIB + estensioni app)
 │   │   │   ├── auth_routes.py   # /auth/*
-│   │   │   └── lyrics_routes.py # /search, /songs, /explore, /artists, /albums
+│   │   │   ├── admin_routes.py  # /admin/*
+│   │   │   └── _helpers.py      # make_error — helper HTTP condiviso
 │   │   ├── services/
 │   │   │   ├── lyrics_service.py
 │   │   │   ├── auth_service.py
-│   │   │   └── crypto_service.py
+│   │   │   └── crypto_service.py  # Generazione/verifica PoW, parse token
 │   │   └── utils/
-│   │       ├── lrc.py           # Encoder/decoder LRC ↔ JSON
-│   │       └── security.py
+│   │       └── lrc.py           # Encoder/decoder LRC ↔ JSON
 │   ├── main.py                  # Entrypoint + seed catalogo
 │   ├── migrate.py               # Migrazione idempotente dello schema
 │   ├── lyrics.db                # SQLite (da escludere con .gitignore in produzione)
@@ -497,12 +499,19 @@ Stopify/
 │   │   ├── search.tsx           # Ricerca nel catalogo
 │   │   ├── explore.tsx          # Catalogo paginato
 │   │   ├── publish.tsx          # Pubblicazione (JWT o PoW)
-│   │   └── song/[id].tsx        # Dettaglio brano + lyrics sincronizzate
+│   │   ├── my-lyrics.tsx        # Brani pubblicati dall'utente autenticato
+│   │   ├── admin.tsx            # Pannello admin (solo is_admin=true)
+│   │   ├── song/[id].tsx        # Dettaglio brano + lyrics sincronizzate
+│   │   └── edit-song/[id].tsx   # Modifica un proprio brano
 │   ├── src/
-│   │   ├── api.ts               # Client REST + auto-refresh JWT
+│   │   ├── api.ts               # Client REST verso il backend
 │   │   ├── AuthContext.tsx      # Stato di autenticazione globale (React Context)
-│   │   ├── storage.ts           # Wrapper SecureStore con fallback AsyncStorage
+│   │   ├── storage.ts           # Wrapper SecureStore con fallback su localStorage (web)
+│   │   ├── dialog.ts            # Wrapper cross-platform per Alert e conferme
 │   │   └── sha256.ts            # SHA-256 client-side per il calcolo del nonce PoW
+│   ├── constants/
+│   │   └── theme.ts             # Colori condivisi (PRIMARY, BG_GRADIENT, TEXT_MUTED, …)
+│   ├── styles/                  # StyleSheet dedicati per ogni schermata
 │   ├── components/              # ThemedText, ThemedView, ...
 │   ├── hooks/
 │   ├── assets/
@@ -516,35 +525,17 @@ Stopify/
 
 ## 11. Test
 
-Il backend espone un test client Flask in-process. I test sono organizzati in due script:
-
-- **`test_endpoints.py`** — verifica `/api/get`, `/api/get-cached`, `/api/search`, `/api/request-challenge`, `/api/publish` (sia via PoW sia via JWT), rifiuto PoW già usato
-- **`test_auth.py`** — register, login con username e con email, refresh token, `/auth/me`, rifiuto credenziali invalide, user enumeration uniforme, token scambiati (access usato come refresh)
-
-Esecuzione su database di test isolato:
+Il backend può essere verificato manualmente tramite `curl` o strumenti come Postman/Insomnia, usando gli endpoint documentati nella sezione §6. Per un test rapido dell'health-check:
 
 ```bash
-cd Backend
-
-# Crea il DB di test
-DATABASE_URL="sqlite:////tmp/lyrics_test.db" python -c "
-from app import create_app
-from app.extensions import db
-app = create_app()
-with app.app_context():
-    db.create_all()
-"
-
-# Esegui i test
-DATABASE_URL="sqlite:////tmp/lyrics_test.db" python test_endpoints.py
-DATABASE_URL="sqlite:////tmp/lyrics_test.db" python test_auth.py
+curl http://localhost:5000/api/health
 ```
 
 ---
 
 ## 12. Conclusioni e sviluppi futuri
 
-Il progetto Stopify ha raggiunto tutti gli obiettivi fissati dalla traccia del corso: l'implementazione completa della specifica LRCLIB, l'autenticazione JWT con auto-refresh, il meccanismo Proof of Work per le pubblicazioni anonime e un'app mobile funzionante su iOS, Android e Web da una singola codebase TypeScript.
+Il progetto Stopify ha raggiunto tutti gli obiettivi fissati dalla traccia del corso: l'implementazione completa della specifica LRCLIB, l'autenticazione JWT, il meccanismo Proof of Work per le pubblicazioni anonime e un'app mobile funzionante su iOS, Android e Web da una singola codebase TypeScript.
 
 Le scelte architetturali (separazione Routes/Services/Models, ORM SQLAlchemy, JWT stateless, PoW one-shot) riflettono i principi di progettazione sicura e manutenibile discussi nel corso.
 
@@ -557,4 +548,4 @@ Le scelte architetturali (separazione Routes/Services/Models, ORM SQLAlchemy, JW
 - **OpenAPI / Swagger** auto-generato dalla specifica degli endpoint
 - **CI/CD** con GitHub Actions: lint, type-check, smoke test su ogni PR
 - **Migrazione a PostgreSQL** per il deploy in produzione multi-utente
-- **Schermata "Le mie pubblicazioni"** nell'app mobile con possibilità di modifica e cancellazione per l'utente autenticato
+- **Pulizia periodica** della tabella `pow_challenges` (rimozione dei token usati o scaduti)

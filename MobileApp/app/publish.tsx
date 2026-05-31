@@ -1,12 +1,6 @@
-/**
- * publish.tsx
- * Modern Publish Screen
- */
-
 import { useState } from "react";
 
 import {
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -25,10 +19,10 @@ import { ThemedText } from "@/components/themed-text";
 import { api, solvePoWLRCLIB } from "../src/api";
 import { useAuth } from "../src/AuthContext";
 import { showAlert } from "../src/dialog";
+import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import styles from '@/styles/publish.styles';
 
 type Step = "form" | "pow" | "sending" | "done";
-
-const PRIMARY = "#4A90E2";
 
 export default function PublishScreen() {
   const router = useRouter();
@@ -68,14 +62,12 @@ export default function PublishScreen() {
 
     try {
       if (user) {
-        // ── Authenticated flow: skip PoW ────────────────────────────────
         setStep("sending");
         await api.publishLRCLIB(body, { authed: true });
         setStep("done");
         return;
       }
 
-      // ── Anonymous flow: solve PoW first ──────────────────────────────
       setStep("pow");
       setPowProgress("Richiesta challenge crittografica…");
 
@@ -109,11 +101,10 @@ export default function PublishScreen() {
     setPowProgress("");
   };
 
-  // LOADING SCREEN
   if (step === "pow" || step === "sending") {
     return (
         <LinearGradient
-            colors={["#020617", "#0F172A", "#111827"]}
+            colors={BG_GRADIENT}
             style={styles.centerContainer}
         >
           <View style={styles.glowOne} />
@@ -121,7 +112,7 @@ export default function PublishScreen() {
 
           <BlurView intensity={40} tint="dark" style={styles.loadingCard}>
             <LinearGradient
-                colors={[PRIMARY, "#2563EB"]}
+                colors={[PRIMARY, PRIMARY_DEEP]}
                 style={styles.loadingIcon}
             >
               <Ionicons
@@ -161,11 +152,10 @@ export default function PublishScreen() {
     );
   }
 
-  // SUCCESS SCREEN
   if (step === "done") {
     return (
         <LinearGradient
-            colors={["#020617", "#0F172A", "#111827"]}
+            colors={BG_GRADIENT}
             style={styles.centerContainer}
         >
           <BlurView intensity={40} tint="dark" style={styles.successCard}>
@@ -194,7 +184,7 @@ export default function PublishScreen() {
                 onPress={handleReset}
             >
               <LinearGradient
-                  colors={[PRIMARY, "#2563EB"]}
+                  colors={[PRIMARY, PRIMARY_DEEP]}
                   style={styles.primaryButton}
               >
                 <ThemedText style={styles.primaryButtonText}>
@@ -207,10 +197,9 @@ export default function PublishScreen() {
     );
   }
 
-  // FORM
   return (
       <LinearGradient
-          colors={["#020617", "#0F172A", "#111827"]}
+          colors={BG_GRADIENT}
           style={styles.container}
       >
         <KeyboardAvoidingView
@@ -225,7 +214,6 @@ export default function PublishScreen() {
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
           >
-            {/* HEADER */}
             <View style={styles.header}>
               <TouchableOpacity
                   activeOpacity={0.7}
@@ -250,7 +238,6 @@ export default function PublishScreen() {
               </ThemedText>
             </View>
 
-            {/* FORM CARD */}
             <BlurView
                 intensity={30}
                 tint="dark"
@@ -289,14 +276,14 @@ export default function PublishScreen() {
                   <Ionicons
                       name="document-text"
                       size={18}
-                      color="#94A3B8"
+                      color={TEXT_MUTED}
                   />
 
                   <TextInput
                       value={lyrics}
                       onChangeText={setLyrics}
                       placeholder="Incolla qui il testo del brano…"
-                      placeholderTextColor="#64748B"
+                      placeholderTextColor={TEXT_DIM}
                       multiline
                       textAlignVertical="top"
                       style={styles.textArea}
@@ -304,7 +291,6 @@ export default function PublishScreen() {
                 </View>
               </View>
 
-              {/* MODE INFO */}
               <LinearGradient
                   colors={
                     user
@@ -331,13 +317,12 @@ export default function PublishScreen() {
                 </ThemedText>
               </LinearGradient>
 
-              {/* BUTTON */}
               <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={handlePublish}
               >
                 <LinearGradient
-                    colors={[PRIMARY, "#2563EB"]}
+                    colors={[PRIMARY, PRIMARY_DEEP]}
                     style={styles.primaryButton}
                 >
                   <Ionicons
@@ -379,245 +364,17 @@ function InputField({ label, icon, value, onChangeText, placeholder }: InputFiel
           <Ionicons
               name={icon}
               size={18}
-              color="#94A3B8"
+              color={TEXT_MUTED}
           />
 
           <TextInput
               value={value}
               onChangeText={onChangeText}
               placeholder={placeholder}
-              placeholderTextColor="#64748B"
+              placeholderTextColor={TEXT_DIM}
               style={styles.input}
           />
         </View>
       </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    padding: 24,
-    paddingTop: 70,
-    paddingBottom: 40,
-  },
-
-  header: {
-    marginBottom: 28,
-  },
-
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF10",
-    borderWidth: 1,
-    borderColor: "#ffffff15",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-
-  title: {
-    fontSize: 42,
-    lineHeight: 50,
-    fontWeight: "800",
-    color: "white",
-    letterSpacing: -1.5,
-    paddingVertical: 4,
-
-    // Android
-    includeFontPadding: false,
-  },
-  subtitle: {
-    color: "#94A3B8",
-    marginTop: 8,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-
-  formCard: {
-    borderRadius: 30,
-    padding: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-    gap: 18,
-  },
-
-  field: {
-    gap: 8,
-  },
-
-  label: {
-    color: "#CBD5E1",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#ffffff08",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-
-  input: {
-    flex: 1,
-    height: 56,
-    color: "white",
-    fontSize: 15,
-  },
-
-  textArea: {
-    flex: 1,
-    minHeight: 170,
-    color: "white",
-    fontSize: 15,
-    paddingTop: 18,
-  },
-
-  infoCard: {
-    flexDirection: "row",
-    gap: 12,
-    borderRadius: 18,
-    padding: 16,
-    alignItems: "flex-start",
-  },
-
-  infoText: {
-    flex: 1,
-    color: "#93C5FD",
-    fontSize: 13,
-    lineHeight: 20,
-  },
-
-  primaryButton: {
-    height: 60,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 8,
-    shadowColor: PRIMARY,
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-
-  primaryButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-
-  loadingCard: {
-    width: "100%",
-    borderRadius: 32,
-    padding: 28,
-    alignItems: "center",
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-  },
-
-  loadingIcon: {
-    width: 90,
-    height: 90,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  loadingTitle: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "700",
-    marginTop: 20,
-  },
-
-  loadingText: {
-    color: "#CBD5E1",
-    textAlign: "center",
-    marginTop: 10,
-    lineHeight: 22,
-    fontSize: 14,
-  },
-
-  loadingHint: {
-    color: "#64748B",
-    textAlign: "center",
-    marginTop: 14,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-
-  successCard: {
-    width: "100%",
-    borderRadius: 32,
-    padding: 30,
-    alignItems: "center",
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-  },
-
-  successIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  successTitle: {
-    color: "white",
-    fontSize: 28,
-    fontWeight: "800",
-    marginTop: 22,
-  },
-
-  successDesc: {
-    color: "#CBD5E1",
-    textAlign: "center",
-    marginTop: 12,
-    marginBottom: 28,
-    lineHeight: 24,
-    fontSize: 15,
-  },
-
-  glowOne: {
-    position: "absolute",
-    width: 260,
-    height: 260,
-    borderRadius: 260,
-    backgroundColor: "#2563EB22",
-    top: -80,
-    right: -60,
-  },
-
-  glowTwo: {
-    position: "absolute",
-    width: 240,
-    height: 240,
-    borderRadius: 240,
-    backgroundColor: "#7C3AED22",
-    bottom: -70,
-    left: -60,
-  },
-});

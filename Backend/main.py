@@ -65,7 +65,7 @@ def _seed_admin():
 SEED_CATALOG = [
     {
         "artist": "The Velvet Hours",
-        "album": {"title": "Late Night Frequencies", "year": 2023},
+        "album": "Late Night Frequencies",
         "title": "Echoes in the Static",
         "duration": 215.0,
         "instrumental": False,
@@ -90,7 +90,7 @@ SEED_CATALOG = [
     },
     {
         "artist": "Solar Static",
-        "album": {"title": "Polar Lights", "year": 2024},
+        "album": "Polar Lights",
         "title": "Midnight Drive",
         "duration": 198.0,
         "instrumental": False,
@@ -115,7 +115,7 @@ SEED_CATALOG = [
     },
     {
         "artist": "Marco Vellini",
-        "album": {"title": "Costa di vetro", "year": 2022},
+        "album": "Costa di vetro",
         "title": "Il faro spento",
         "duration": 232.0,
         "instrumental": False,
@@ -140,7 +140,7 @@ SEED_CATALOG = [
     },
     {
         "artist": "Matteo",
-        "album": {"title": "Pizza Tapes", "year": 2026},
+        "album": "Pizza Tapes",
         "title": "Inno alla Pizza",
         "duration": 175.0,
         "instrumental": False,
@@ -178,13 +178,12 @@ def _seed():
 
         # Album
         album = Album.query.filter(
-            Album.title.ilike(entry["album"]["title"]),
+            Album.title.ilike(entry["album"]),
             Album.artist_id == artist.id,
         ).first()
         if not album:
             album = Album(
-                title=entry["album"]["title"],
-                year=entry["album"]["year"],
+                title=entry["album"],
                 artist_id=artist.id,
             )
             db.session.add(album)

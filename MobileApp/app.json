@@ -46,7 +46,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiBaseUrl": "http://10.93.174.105:5000"
+      "apiBaseUrl": "http://10.94.186.105:5000"
     }
   }
 }

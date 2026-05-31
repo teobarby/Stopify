@@ -1,11 +1,5 @@
-/**
- * HomeScreen.tsx
- * Versione moderna UI/UX
- */
-
 import { useEffect, useRef, useState } from "react";
 import {
-  StyleSheet,
   View,
   TouchableOpacity,
   StatusBar,
@@ -21,11 +15,8 @@ import { ThemedText } from "@/components/themed-text";
 import { api } from "../src/api";
 import { useAuth } from "../src/AuthContext";
 import { showConfirm } from "../src/dialog";
-
-const { width } = Dimensions.get("window");
-
-const PRIMARY = "#4A90E2";
-const BG = "#0F172A";
+import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, BG_MID, TEXT_MUTED, TEXT_SOFT } from "@/constants/theme";
+import styles from '@/styles/index.styles';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -79,16 +70,14 @@ export default function HomeScreen() {
   return (
 
       <LinearGradient
-          colors={["#020617", "#0F172A", "#111827"]}
+          colors={BG_GRADIENT}
           style={styles.container}
       >
         <StatusBar barStyle="light-content" />
 
-        {/* Glow background */}
         <View style={styles.glowOne} />
         <View style={styles.glowTwo} />
 
-        {/* TOP-RIGHT PROFILE PILL */}
         <View style={styles.topBar}>
           {authLoading ? null : user ? (
               <TouchableOpacity activeOpacity={0.85} onPress={handleLogout}>
@@ -104,7 +93,7 @@ export default function HomeScreen() {
                   <ThemedText style={styles.profileName} numberOfLines={1}>
                     @{user.username}
                   </ThemedText>
-                  <Ionicons name="log-out-outline" size={16} color="#94A3B8" />
+                  <Ionicons name="log-out-outline" size={16} color={TEXT_MUTED} />
                 </BlurView>
               </TouchableOpacity>
           ) : (
@@ -132,7 +121,6 @@ export default function HomeScreen() {
               },
             ]}
         >
-          {/* HERO */}
           <View style={styles.hero}>
             <View style={styles.logoContainer}>
               <LinearGradient
@@ -150,7 +138,6 @@ export default function HomeScreen() {
             </ThemedText>
           </View>
 
-          {/* STATUS CARD */}
           <BlurView intensity={30} tint="dark" style={styles.statusCard}>
             <View
                 style={[styles.statusDot, { backgroundColor: statusColor }]}
@@ -161,12 +148,11 @@ export default function HomeScreen() {
             </ThemedText>
           </BlurView>
 
-          {/* ACTIONS */}
           <View style={styles.actions}>
             <Link href="/search" asChild>
               <TouchableOpacity activeOpacity={0.85}>
                 <LinearGradient
-                    colors={[PRIMARY, "#2563EB"]}
+                    colors={[PRIMARY, PRIMARY_DEEP]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.primaryButton}
@@ -209,7 +195,6 @@ export default function HomeScreen() {
               </Link>
             </View>
 
-            {/* Quando loggato esponi anche un quick link per Publish */}
             {user ? (
                 <Link href="/publish" asChild>
                   <TouchableOpacity activeOpacity={0.85}>
@@ -229,14 +214,13 @@ export default function HomeScreen() {
                       <Ionicons
                           name="chevron-forward"
                           size={16}
-                          color="#94A3B8"
+                          color={TEXT_MUTED}
                       />
                     </BlurView>
                   </TouchableOpacity>
                 </Link>
             ) : null}
 
-            {/* Pannello admin: visibile solo se user.is_admin */}
             {user?.is_admin ? (
                 <Link href="/admin" asChild>
                   <TouchableOpacity activeOpacity={0.85}>
@@ -256,7 +240,7 @@ export default function HomeScreen() {
                       <Ionicons
                           name="chevron-forward"
                           size={16}
-                          color="#94A3B8"
+                          color={TEXT_MUTED}
                       />
                     </BlurView>
                   </TouchableOpacity>
@@ -264,7 +248,6 @@ export default function HomeScreen() {
             ) : null}
           </View>
 
-          {/* FOOTER */}
           <View style={styles.footer}>
             <ThemedText style={styles.footerText}>
               Powered by Flask · API REST
@@ -274,261 +257,3 @@ export default function HomeScreen() {
       </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    backgroundColor: BG,
-  },
-
-  topBar: {
-    position: "absolute",
-    top: 60,
-    right: 20,
-    zIndex: 10,
-  },
-
-  profilePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingLeft: 4,
-    paddingRight: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff15",
-    maxWidth: 200,
-  },
-
-  profileAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  profileInitial: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "800",
-  },
-
-  profileName: {
-    color: "white",
-    fontSize: 13,
-    fontWeight: "700",
-    flexShrink: 1,
-  },
-
-  signInPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 999,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff15",
-  },
-
-  signInText: {
-    color: "white",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-
-  glowOne: {
-    position: "absolute",
-    width: 250,
-    height: 250,
-    borderRadius: 200,
-    backgroundColor: "#2563EB33",
-    top: -60,
-    right: -40,
-  },
-
-  glowTwo: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 200,
-    backgroundColor: "#7C3AED22",
-    bottom: -40,
-    left: -40,
-  },
-
-  content: {
-    gap: 26,
-  },
-
-  hero: {
-    alignItems: "center",
-    gap: 14,
-  },
-
-  logoContainer: {
-    marginBottom: 10,
-  },
-
-  logoGradient: {
-    width: 88,
-    height: 88,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: PRIMARY,
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-
-  title: {
-    fontSize: 42,
-    lineHeight: 50,
-    fontWeight: "800",
-    color: "white",
-    letterSpacing: -1.5,
-    paddingVertical: 4,
-
-    // Android
-    includeFontPadding: false,
-  },
-
-  subtitle: {
-    textAlign: "center",
-    color: "#CBD5E1",
-    fontSize: 15,
-    lineHeight: 22,
-    paddingHorizontal: 20,
-  },
-
-  statusCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "center",
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 999,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff15",
-  },
-
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 10,
-  },
-
-  statusText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 13,
-  },
-
-  actions: {
-    gap: 16,
-  },
-
-  primaryButton: {
-    height: 64,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-    shadowColor: PRIMARY,
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    elevation: 10,
-  },
-
-  primaryButtonText: {
-    color: "white",
-    fontSize: 17,
-    fontWeight: "700",
-  },
-
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 14,
-  },
-
-  secondaryCard: {
-    flex: 1,
-    height: 130,
-    borderRadius: 26,
-    backgroundColor: "#FFFFFF10",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-    backdropFilter: "blur(10px)",
-  },
-
-  publishPill: {
-    marginTop: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 18,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-  },
-
-  publishPillText: {
-    flex: 1,
-    color: "white",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-
-  adminPill: {
-    marginTop: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 18,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#FCD34D44",
-    backgroundColor: "#FCD34D0A",
-  },
-
-  adminPillText: {
-    flex: 1,
-    color: "#FCD34D",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  cardTitle: {
-    color: "white",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-
-  footer: {
-    marginTop: 12,
-    alignItems: "center",
-  },
-
-  footerText: {
-    color: "#94A3B8",
-    fontSize: 12,
-  },
-});

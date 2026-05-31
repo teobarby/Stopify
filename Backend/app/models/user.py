@@ -1,9 +1,4 @@
-"""
-Modello User — predisposto per l'autenticazione futura.
-Attualmente l'app pubblica le lyrics in modo anonimo (PoW).
-"""
-
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.extensions import db
 
@@ -15,11 +10,8 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    # Ruolo: True per gli amministratori, False per gli utenti normali.
-    # Gli admin possono modificare/cancellare qualunque brano e visualizzare
-    # tutto il catalogo (anche i brani anonimi).
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
         return {

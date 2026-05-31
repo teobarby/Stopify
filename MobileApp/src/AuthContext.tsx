@@ -2,7 +2,7 @@
  * AuthContext.tsx
  * React context per lo stato di autenticazione globale.
  *
- * Espone: user, loading, login(), register(), logout(), refresh()
+ * Espone: user, loading, login(), register(), logout()
  * Al boot prova a leggere un token salvato e a chiamare /auth/me.
  */
 
@@ -27,7 +27,6 @@ interface AuthContextValue {
         password: string
     ) => Promise<void>;
     logout: () => Promise<void>;
-    refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -81,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout, refresh }}>
+        <AuthContext.Provider value={{ user, loading, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     );
