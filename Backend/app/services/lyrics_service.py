@@ -1,7 +1,6 @@
 from app.errors import AppError
 from app.extensions import db
 from app.models.lyrics import Artist, Album, Song
-from app.models.challenge import PowChallenge
 from app.services.crypto_service import difficulty_to_target, verify_pow
 from app.utils.lrc import lrc_to_json
 
@@ -123,16 +122,9 @@ def publish_song_lrclib(
         if not prefix or not nonce:
             raise AppError("Autenticazione richiesta: JWT o X-Publish-Token", 401)
 
-        challenge = PowChallenge.query.filter_by(token=prefix, used=False).first()
-        if not challenge:
-            raise AppError("Token PoW non valido o già utilizzato", 403)
-
-        target = difficulty_to_target(challenge.difficulty)
+        target = difficulty_to_target(4)
         if not verify_pow(prefix, nonce, target):
             raise AppError("Proof of Work non superata", 403)
-
-        challenge.used = True
-        db.session.flush()
 
     artist, album = _resolve_artist_album(fields["artist_name"], fields["album_name"])
     song = Song(

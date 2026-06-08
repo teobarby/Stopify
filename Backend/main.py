@@ -24,7 +24,7 @@ def _seed_admin():
     Crea l'utente amministratore al primo avvio, leggendo le credenziali da
     config (ADMIN_USERNAME / ADMIN_EMAIL / ADMIN_PASSWORD).
 
-    Idempotente: se esiste già un utente con quello username o un qualsiasi
+    Se esiste già un utente con quello username o un qualsiasi
     altro admin, non fa nulla. Serve solo a garantire che ci sia sempre
     almeno un admin nel sistema.
     """

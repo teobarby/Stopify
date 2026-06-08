@@ -39,14 +39,15 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
-      "apiBaseUrl": "http://10.94.186.105:5000"
+      "apiBaseUrl": "http://10.231.65.105:5000"
     }
   }
 }

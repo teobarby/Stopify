@@ -1,12 +1,11 @@
 from datetime import datetime, timezone
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.extensions import db
-from app.models.challenge import PowChallenge
 from app.models.lyrics import Song
-from app.services.crypto_service import difficulty_to_target, generate_token, parse_publish_token
+from app.services.crypto_service import parse_publish_token
 from app.errors import AppError
 from app.services.auth_service import get_user_by_id
 from app.services.lyrics_service import (
@@ -75,14 +74,9 @@ def search_lyrics():
 
 @lrclib_bp.route("/request-challenge", methods=["POST"])
 def request_challenge():
-    difficulty = current_app.config.get("POW_DIFFICULTY", 4)
+    from app.services.crypto_service import difficulty_to_target, generate_token
     prefix = generate_token(32)
-    target = difficulty_to_target(difficulty)
-
-    challenge = PowChallenge(token=prefix, difficulty=difficulty)
-    db.session.add(challenge)
-    db.session.commit()
-
+    target = difficulty_to_target(4)
     return jsonify({"prefix": prefix, "target": target}), 200
 
 

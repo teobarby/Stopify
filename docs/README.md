@@ -3,8 +3,8 @@
 Sistema per la raccolta e consultazione di **lyrics musicali** (testi piani e sincronizzati) compatibile con la specifica [LRCLIB](https://lrclib.net/docs).
 
 > **Corso:** Architettura, Reti e Sicurezza — A.A. 2025/2026
-> **Studente:** Matteo Barbieri
-> **Università:** Università degli Studi — Corso di Laurea Magistrale in Ingegneria Informatica
+> **Studenti:** Matteo Barbieri, Ludovico Colussi, Francesco Martinelli
+> **Università:** Università degli Studi del Piemonte Orientale — Corso di Laurea Intelligenza Artificiale e Innovazione Digitale
 
 ---
 
@@ -418,11 +418,6 @@ source ../venv/bin/activate          # Windows: ..\venv\Scripts\activate
 
 # 2. Installa le dipendenze
 pip install -r requirements.txt
-
-# 3. Migrazione idempotente del DB
-#    Crea le tabelle se non esistono e aggiunge le colonne aggiunte dopo la
-#    prima release (idempotente: sicuro da rieseguire su un DB già aggiornato).
-python migrate.py
 
 # 4. Avvio del server di sviluppo
 python main.py
