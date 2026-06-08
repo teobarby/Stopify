@@ -1,0 +1,153 @@
+\section{Analisi degli aspetti di sicurezza}\label{sec:sicurezza}
+
+L'analisi di sicurezza copre i principali pilastri del modello CIA
+(\emph{Confidentiality, Integrity, Availability}) ed è suddivisa fra
+\emph{controlli già implementati nel codice} e \emph{controlli previsti
+come future work} (rinviati alla fase di produzione).
+
+\subsection{Autenticazione e gestione utenti}
+\begin{itemize}
+    \item Password con hashing \textbf{PBKDF2-SHA256} e salt randomico di
+    16 byte (defaults di \code{werkzeug.security.generate\_password\_hash}).
+    \item Validazione lato server: username
+    \verb|^[A-Za-z0-9_]{3,30}$|, email regex, password $\geq 8$ caratteri
+    con almeno una cifra.
+    \item Univocità di username ed email è verificata case-insensitive.
+    \item Il login accetta indistintamente username o email come
+    identificatore.
+\end{itemize}
+
+\subsection{Protezione dei dati a riposo}
+\begin{itemize}
+    \item Le password sono memorizzate solo come hash; il valore in chiaro
+    non viene mai loggato né serializzato.
+    \item Il database SQLite vive in un singolo file (\code{lyrics.db}); in
+    produzione si raccomanda cifratura del filesystem o uso di SQLCipher.
+    \item I JWT non vengono persistiti lato server: sono \emph{stateless} e
+    autocontenuti.
+    \item Il file \code{lyrics.db} deve essere escluso dal version control
+    in produzione (già configurato in \code{.gitignore}) e protetto da
+    permessi di filesystem a lettura/scrittura riservati all'utente del
+    processo Flask.
+\end{itemize}
+
+\subsection{Crittografia delle comunicazioni}
+\begin{itemize}
+    \item In sviluppo le comunicazioni avvengono su HTTP non cifrato sulla
+    rete locale, accettabile perché non transitano reti pubbliche.
+    \item In produzione \textbf{tutto il traffico deve transitare su HTTPS}
+    (TLS 1.2 minimo, preferibilmente TLS 1.3). Il certificato è gestito da
+    un reverse proxy (nginx o Caddy con Let's Encrypt); Flask opera in
+    HTTP plain dietro il proxy sulla rete interna.
+    \item Il token JWT è trasmesso esclusivamente via header HTTP
+    (\code{Authorization: Bearer}), mai in query string, per evitare
+    esposizione nei log dei server.
+\end{itemize}
+
+\subsection{Configurazione firewall e sicurezza di rete}
+\begin{itemize}
+    \item \textbf{In sviluppo}: nessun firewall specifico; il server è
+    accessibile solo sulla rete locale (binding \code{0.0.0.0:5000}
+    limitato dalla rete LAN).
+    \item \textbf{In produzione}: si raccomanda un firewall host-based
+    (es. \code{ufw} su Linux) che esponga solo le porte 80 (redirect HTTP)
+    e 443 (HTTPS). La porta 5000 di Flask deve essere chiusa verso
+    l'esterno e raggiungibile solo dal reverse proxy in loopback
+    (\code{127.0.0.1}).
+    \item Regole firewall consigliate:
+    \begin{itemize}
+        \item \texttt{ufw allow 80/tcp} — redirect HTTP → HTTPS
+        \item \texttt{ufw allow 443/tcp} — traffico HTTPS
+        \item \texttt{ufw deny 5000/tcp} — Flask non esposto
+        \item \texttt{ufw default deny incoming} — policy di default restrittiva
+    \end{itemize}
+    \item Un \textbf{Web Application Firewall} (WAF) come ModSecurity o
+    Cloudflare WAF può essere aggiunto davanti al reverse proxy per
+    filtrare request malevole (SQL injection, path traversal, ecc.) prima
+    che raggiungano l'applicazione.
+\end{itemize}
+
+\subsection{VPN per accessi remoti}
+\begin{itemize}
+    \item In ambienti dove il backend non deve essere esposto pubblicamente
+    (es. deployment interno aziendale), si raccomanda di rendere il server
+    raggiungibile solo tramite VPN (WireGuard o OpenVPN).
+    \item Il pannello di amministrazione (\code{/admin/*}) è un candidato
+    naturale per questo tipo di restrizione: accessibile solo da IP della
+    VPN, con il reverse proxy configurato per bloccare tutte le altre
+    sorgenti sul prefisso \code{/admin}.
+    \item In sviluppo multi-sviluppatore su reti separate, una VPN garantisce
+    che le chiamate API di test non transitino su reti pubbliche non cifrate.
+\end{itemize}
+
+\subsection{Gestione delle vulnerabilità}
+\begin{itemize}
+    \item \textbf{SQL Injection}: mitigata dall'uso di SQLAlchemy ORM con
+    query parametrizzate; nessuna query raw con input utente.
+    \item \textbf{XSS}: l'API è stateless e restituisce solo JSON; non
+    genera HTML, eliminando il vettore XSS classico.
+    \item \textbf{CSRF}: non applicabile perché l'autenticazione avviene
+    tramite header JWT (non cookie); i browser non allegano automaticamente
+    gli header custom in richieste cross-site.
+    \item \textbf{Brute force su login}: attualmente non implementato il
+    rate limiting. Come \emph{future work}: \code{Flask-Limiter} con soglia
+    di 5 tentativi/minuto per IP sull'endpoint \code{POST /auth/login}.
+    \item \textbf{Dipendenze}: le versioni sono fissate in
+    \code{requirements.txt}; si consiglia l'uso di \code{pip audit} o
+    Dependabot per rilevare CVE nelle librerie usate.
+\end{itemize}
+
+\subsection{Backup e ripristino}
+\begin{itemize}
+    \item In sviluppo il database è un singolo file; il backup consiste
+    in una copia del file \code{lyrics.db}.
+    \item In produzione si raccomanda:
+    \begin{itemize}
+        \item Backup notturno automatizzato tramite \code{cron} con
+        \code{sqlite3 lyrics.db .dump > backup-\$(date +\%F).sql}
+        e trasferimento su storage remoto (es. S3 o NAS).
+        \item Verifica periodica dell'integrità con
+        \code{sqlite3 lyrics.db "PRAGMA integrity\_check"}.
+        \item In caso di migrazione a PostgreSQL: \code{pg\_dump} con
+        retention di 7 giorni e test di restore automatico.
+    \end{itemize}
+    \item Il codice sorgente è versionato con Git; il ripristino
+    dell'applicazione richiede solo il repository e l'ultimo backup del DB.
+\end{itemize}
+
+\subsection{Monitoraggio e logging}
+\begin{itemize}
+    \item \textbf{In sviluppo}: Flask stampa su stdout le richieste
+    HTTP con status code, IP sorgente e latenza.
+    \item \textbf{In produzione} si raccomanda:
+    \begin{itemize}
+        \item Logging strutturato JSON con \code{python-json-logger},
+        rotazione del file di log con \code{RotatingFileHandler}
+        (es. 10 MB, 5 file).
+        \item Log degli eventi di autenticazione: login riusciti e
+        falliti con IP sorgente (senza loggare la password).
+        \item Alert su anomalie: numero di login falliti superiore a
+        soglia, errori 5xx ripetuti, latenza media oltre 2 secondi.
+        \item Strumenti consigliati: Prometheus + Grafana per le metriche,
+        Loki o ELK stack per i log applicativi.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Conformità legale (GDPR)}
+\begin{itemize}
+    \item I dati personali raccolti sono: username, indirizzo e-mail e
+    hash della password. Nessun dato sensibile (categorie speciali
+    ex art.~9 GDPR) è trattato.
+    \item Gli utenti autenticati possono leggere i propri dati tramite
+    \endpoint{GET}{/auth/me}.
+    \item \textbf{Diritto all'oblio (art.~17 GDPR)}: attualmente non
+    implementato un endpoint di cancellazione account. Come
+    \emph{future work}: \endpoint{DELETE}{/auth/me} che rimuova il
+    record \code{User} e anonimizzi i brani associati
+    (impostando \code{user\_id = NULL}).
+    \item I log di produzione non devono contenere dati personali in
+    chiaro; è sufficiente loggare l'ID utente (intero) anziché
+    username o email.
+    \item La privacy policy deve essere esposta agli utenti al momento
+    della registrazione, prima della raccolta dei dati.
+\end{itemize}

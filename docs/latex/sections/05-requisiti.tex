@@ -1,0 +1,174 @@
+
+% COLONNA X COMPATIBILE CON LONGTABLE
+\newcolumntype{Y}{>{\raggedright\arraybackslash}p{8cm}}
+
+\section{Requisiti funzionali e non funzionali}
+
+\subsection{Requisiti funzionali}
+
+\begin{longtable}{@{}p{1.2cm}p{4.5cm}Y@{}}
+
+\caption{Requisiti funzionali.}\\
+
+\toprule
+\textbf{ID} & \textbf{Nome} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{ID} & \textbf{Nome} & \textbf{Descrizione} \\
+\midrule
+\endhead
+
+\FRid{1} & Ricerca per signature &
+Il sistema deve consentire di cercare un testo per
+\code{track\_name} + \code{artist\_name}, con eventuale filtro su
+\code{album\_name} e \code{duration}. Realizzato da
+\endpoint{GET}{/api/get} e \endpoint{GET}{/api/get-cached}. \\
+
+\FRid{2} & Recupero per ID &
+Deve essere possibile recuperare un testo conoscendo il suo identificativo
+univoco. Realizzato da \endpoint{GET}{/api/get/<id>}. \\
+
+\FRid{3} & Ricerca generica &
+L'utente deve poter cercare testi per parola chiave (\code{q}) o per
+combinazione di titolo, artista, album. Realizzato da
+\endpoint{GET}{/api/search}. \\
+
+\FRid{4} & Pubblicazione anonima &
+Un utente non registrato deve poter pubblicare un nuovo testo dopo aver
+superato una sfida \emph{Proof of Work}. Realizzato dalla coppia
+\endpoint{POST}{/api/request-challenge} +
+\endpoint{POST}{/api/publish} con header \code{X-Publish-Token}. \\
+
+\FRid{5} & Pubblicazione autenticata &
+Un utente autenticato (Bearer token) deve poter pubblicare un nuovo testo
+senza risolvere la PoW. Il brano viene attribuito al suo username nel
+campo \code{submittedBy}. \\
+
+\FRid{6} & Registrazione utente &
+Deve essere possibile creare un account fornendo username, email e
+password. Realizzato da \endpoint{POST}{/auth/register}. \\
+
+\FRid{7} & Login utente &
+L'utente deve potersi autenticare con username o email e password,
+ricevendo un access token JWT. Realizzato da
+\endpoint{POST}{/auth/login}. \\
+
+\FRid{8} & Dati dell'utente corrente &
+L'utente autenticato deve poter recuperare i propri dati di profilo.
+Realizzato da \endpoint{GET}{/auth/me}. \\
+
+\FRid{9} & Elenco dei propri brani &
+L'utente autenticato deve poter ottenere la lista dei testi da lui
+pubblicati. Realizzato da \endpoint{GET}{/api/me/songs}. \\
+
+\FRid{10} & Modifica di un proprio brano &
+L'utente autenticato deve poter modificare un brano di cui è autore.
+Realizzato da \endpoint{PUT}{/api/songs/<id>}. \\
+
+\FRid{11} & Cancellazione di un proprio brano &
+L'utente autenticato deve poter cancellare un brano di cui è autore.
+Realizzato da \endpoint{DELETE}{/api/songs/<id>}. \\
+
+\FRid{12} & Pannello amministratore &
+Un utente con flag \code{is\_admin} deve poter consultare l'intero
+catalogo (inclusi i brani anonimi), con filtri per query e per
+autore. Realizzato da \endpoint{GET}{/admin/songs}
+(richiede JWT + \code{is\_admin}). \\
+
+\FRid{13} & Esplorazione del catalogo &
+Il sistema deve fornire un elenco paginato dei brani, ordinabile per
+data, titolo o artista. Realizzato da \endpoint{GET}{/api/explore}. \\
+
+\FRid{14} & Lettura del testo sincronizzato &
+L'applicazione mobile deve poter mostrare il testo sincronizzato a tempo
+con la riproduzione, evidenziando la riga corrente. \\
+
+\FRid{15} & Health check &
+Deve essere disponibile un endpoint per verificare lo stato del backend
+e visualizzarlo in home (utile per lo sviluppo).
+Realizzato da \endpoint{GET}{/api/health}. \\
+
+\bottomrule
+\end{longtable}
+
+\subsection{Requisiti non funzionali}
+
+I requisiti non funzionali descrivono le proprietà qualitative del sistema,
+i vincoli architetturali e i requisiti di sicurezza, affidabilità,
+performance e manutenibilità che il sistema Stopify deve rispettare.
+
+\begin{longtable}{@{}p{1.2cm}p{3cm}p{8.5cm}@{}}
+
+\caption{Requisiti non funzionali.}\\
+
+\toprule
+\textbf{ID} & \textbf{Categoria} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{ID} & \textbf{Categoria} & \textbf{Descrizione} \\
+\midrule
+\endhead
+
+\NFRid{1} & Sicurezza &
+Le password degli utenti devono essere memorizzate esclusivamente tramite
+hashing PBKDF2-SHA256 utilizzando le funzioni di
+\texttt{werkzeug.security}. \\
+
+\NFRid{2} & Sicurezza &
+Gli endpoint autenticati devono richiedere un JSON Web Token (JWT)
+valido e non scaduto. \\
+
+\NFRid{3} & Sicurezza &
+Le pubblicazioni anonime devono essere consentite solo previa
+risoluzione corretta di una sfida crittografica Proof of Work (PoW). \\
+
+\NFRid{4} & Sicurezza &
+Il backend deve limitare la dimensione massima dei payload HTTP per
+prevenire attacchi DoS tramite richieste eccessivamente grandi. \\
+
+\NFRid{5} & Privacy &
+Le password non devono mai essere memorizzate o trasmesse in chiaro. \\
+
+\NFRid{6} & Privacy &
+Il sistema non deve associare dati personali identificativi alle
+pubblicazioni anonime effettuate tramite PoW. \\
+
+\NFRid{7} & Performance &
+Le operazioni di ricerca e recupero testi devono garantire tempi di
+risposta compatibili con l’utilizzo su dispositivi mobili. \\
+
+\NFRid{8} & Affidabilità &
+Il backend deve restituire codici di stato HTTP coerenti con l’esito
+delle operazioni richieste. \\
+
+\NFRid{9} & Compatibilità &
+Lo scambio dati tra client mobile e backend deve avvenire esclusivamente
+tramite JSON codificato UTF-8 su protocollo HTTP/REST. \\
+
+\NFRid{10} & Portabilità &
+L’applicazione client deve poter essere eseguita su piattaforme Android,
+iOS e Web tramite React Native ed Expo. \\
+
+\NFRid{11} & Disponibilità &
+Il backend deve esporre un endpoint di health check per verificare lo
+stato del servizio. \\
+
+\NFRid{12} & Manutenibilità &
+Il backend deve essere organizzato secondo un’architettura modulare
+suddivisa in routes, services e models. \\
+
+\NFRid{13} & Scalabilità &
+L’architettura del sistema deve consentire la sostituzione futura del
+database SQLite con DBMS più scalabili senza modifiche sostanziali alle
+API REST. \\
+
+\NFRid{14} & Sicurezza &
+In ambiente di produzione le comunicazioni devono avvenire tramite HTTPS
+con TLS terminato da un reverse proxy. \\
+
+\bottomrule
+\end{longtable}

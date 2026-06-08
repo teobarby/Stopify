@@ -1,0 +1,232 @@
+\section{Use Case Diagram e narrative}
+
+\subsection{Use Case Diagram}
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\textwidth]{use-case-diagram.png}
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \TODO{Inserire \emph{Use Case Diagram} UML disegnato con draw.io o
+        Excalidraw. Attori: ``Utente anonimo'', ``Utente registrato'' e
+        ``Amministratore'';
+        casi d'uso: Cerca brano, Esplora catalogo, Legge testo
+        sincronizzato, Registrazione, Login, Pubblica anonimo (PoW),
+        Pubblica autenticato, Modifica brano, Cancella brano,
+        Gestione catalogo (admin).}
+        \vspace{1em}}}
+    \caption{Use Case Diagram di Stopify.}
+    \label{fig:usecase}
+\end{figure}
+
+\subsection{Narrative dei casi d'uso}
+
+% =====================================================================
+\paragraph{UC1 --- Ricerca di un brano}\hfill\\
+\textbf{Scope:} catalogo lyrics.\\
+\textbf{Level:} user-goal.\\
+\textbf{Intention in context:} l'utente vuole leggere il testo di un brano
+che gli è venuto in mente.\\
+\textbf{Primary actor:} Utente anonimo.\\
+\textbf{Support actor:} Backend Flask.
+
+\subparagraph{Stakeholder's interest:}
+\begin{itemize}
+    \item \textbf{Utente:} trovare velocemente il testo di un brano.
+    \item \textbf{Sistema:} servire risultati rilevanti con bassa latenza.
+\end{itemize}
+
+\textbf{Precondition:} il backend è raggiungibile.\\
+\textbf{Minimum guarantees:} nessuna modifica dello stato del sistema.\\
+\textbf{Success guarantees:} l'utente vede il testo del brano richiesto.\\
+\textbf{Trigger:} l'utente apre la schermata ``Cerca''.
+
+\subparagraph{Main success scenario:}
+\begin{enumerate}
+    \item L'utente digita una stringa nel campo di ricerca.
+    \item L'app invia \endpoint{GET}{/api/search?q=<stringa>}.
+    \item Il backend restituisce l'elenco dei brani che matchano titolo o
+    artista.
+    \item L'utente seleziona un brano.
+    \item L'app invia \endpoint{GET}{/api/get/<id>} e mostra il testo.
+\end{enumerate}
+
+\subparagraph{Extensions:}
+\begin{itemize}
+    \item \textbf{3a:} nessun risultato $\Rightarrow$ l'app mostra empty state
+    ``Nessun risultato''.
+\end{itemize}
+
+% =====================================================================
+\paragraph{UC2 --- Registrazione di un nuovo account}\hfill\\
+\textbf{Scope:} autenticazione.\\
+\textbf{Level:} user-goal.\\
+\textbf{Intention in context:} l'utente vuole creare un account per
+contribuire senza dover risolvere la PoW ad ogni pubblicazione.\\
+\textbf{Primary actor:} Utente anonimo.
+
+\textbf{Precondition:} l'utente non è autenticato.\\
+\textbf{Success guarantees:} è stato creato un nuovo record \code{User} e
+l'utente è loggato.
+
+\subparagraph{Main success scenario:}
+\begin{enumerate}
+    \item L'utente apre la schermata ``Crea un account''.
+    \item Inserisce username, email e password.
+    \item L'app valida i campi lato client (regex, lunghezza minima).
+    \item L'app invia \endpoint{POST}{/auth/register} con il payload.
+    \item Il backend valida nuovamente, hasha la password (PBKDF2-SHA256),
+    crea il record e restituisce l'\emph{access token} JWT.
+    \item L'app salva il token nello storage sicuro e mostra la home da
+    autenticato.
+\end{enumerate}
+
+\subparagraph{Extensions:}
+\begin{itemize}
+    \item \textbf{4a:} username o email già presenti $\Rightarrow$ il backend
+    risponde 409 e l'app mostra il messaggio di errore inline.
+    \item \textbf{5a:} password troppo debole $\Rightarrow$ 422 con
+    \code{WeakPasswordError}.
+\end{itemize}
+
+% =====================================================================
+\paragraph{UC3 --- Pubblicazione anonima con Proof of Work}\hfill\\
+\textbf{Scope:} contenuti, sicurezza.\\
+\textbf{Level:} user-goal.\\
+\textbf{Intention in context:} l'utente vuole condividere il testo di un
+brano senza voler creare un account.\\
+\textbf{Primary actor:} Utente anonimo.
+
+\textbf{Precondition:} l'utente conosce titolo, artista e testo.\\
+\textbf{Minimum guarantees:} nessun brano viene pubblicato se la PoW non
+viene superata.\\
+\textbf{Success guarantees:} un nuovo record \code{Song} è presente nel DB
+con \code{user\_id=NULL}.
+
+\subparagraph{Main success scenario:}
+\begin{enumerate}
+    \item L'utente apre la schermata ``Pubblica'' e compila il form.
+    \item L'app invia \endpoint{POST}{/api/request-challenge} e riceve
+    \code{\{prefix, target\}}.
+    \item L'app risolve la PoW cercando un \code{nonce} tale che
+    SHA-256(\code{prefix+nonce}) $\leq$ \code{target}.
+    \item L'app invia \endpoint{POST}{/api/publish} con il body del brano e
+    l'header \code{X-Publish-Token: prefix:nonce}.
+    \item Il backend verifica la PoW, marca atomicamente il token come
+    consumato, crea il brano e risponde 201 con il record creato.
+\end{enumerate}
+
+\subparagraph{Extensions:}
+\begin{itemize}
+    \item \textbf{4a:} il token PoW è già stato consumato (race condition)
+    $\Rightarrow$ 409 \code{Conflict}.
+    \item \textbf{4b:} il \code{plainLyrics} eccede la lunghezza massima
+    $\Rightarrow$ 422 con dettaglio della violazione.
+\end{itemize}
+
+% =====================================================================
+\paragraph{UC4 --- Pubblicazione autenticata}\hfill\\
+\textbf{Scope:} contenuti.\\
+\textbf{Level:} user-goal.\\
+\textbf{Primary actor:} Utente registrato.
+
+\textbf{Precondition:} l'utente è autenticato (\emph{access token} valido).\\
+\textbf{Success guarantees:} il nuovo brano viene creato con
+\code{user\_id} valorizzato.
+
+\subparagraph{Main success scenario:}
+\begin{enumerate}
+    \item L'utente apre la schermata ``Pubblica''.
+    \item L'app, vedendo il contesto autenticato, salta la richiesta di
+    challenge.
+    \item L'app invia \endpoint{POST}{/api/publish} con header
+    \code{Authorization: Bearer <jwt>}.
+    \item Il backend identifica l'utente dal token e crea il brano con
+    \code{user\_id} valorizzato.
+\end{enumerate}
+
+% =====================================================================
+\paragraph{UC5 --- Modifica di un brano pubblicato}\hfill\\
+\textbf{Scope:} contenuti, autorizzazione.\\
+\textbf{Level:} user-goal.\\
+\textbf{Primary actor:} Utente registrato.
+
+\textbf{Precondition:} l'utente è autenticato e proprietario del brano.\\
+\textbf{Minimum guarantees:} un brano non può essere modificato da un
+utente diverso dal proprio autore.
+
+\subparagraph{Main success scenario:}
+\begin{enumerate}
+    \item L'utente apre ``I miei testi''.
+    \item L'app chiama \endpoint{GET}{/api/me/songs} e mostra l'elenco.
+    \item L'utente tocca l'icona di modifica su un brano.
+    \item L'app naviga al form precompilato.
+    \item Dopo le modifiche, invia \endpoint{PUT}{/api/songs/<id>}.
+    \item Il backend verifica che \code{song.user\_id == current\_user\_id},
+    aggiorna i campi e risponde 200.
+\end{enumerate}
+
+\subparagraph{Extensions:}
+\begin{itemize}
+    \item \textbf{6a:} \code{song.user\_id} appartiene a un altro utente
+    $\Rightarrow$ 403 \code{Forbidden}.
+    \item \textbf{6b:} il brano è anonimo (\code{user\_id=NULL})
+    $\Rightarrow$ 403 (non modificabile).
+\end{itemize}
+
+% =====================================================================
+\paragraph{UC6 --- Cancellazione di un brano}\hfill\\
+\textbf{Scope:} contenuti, autorizzazione.\\
+\textbf{Primary actor:} Utente registrato.
+
+\textbf{Success guarantees:} il record \code{Song} viene rimosso dal DB e
+non è più reperibile via API.
+
+\subparagraph{Main success scenario:}
+\begin{enumerate}
+    \item L'utente apre ``I miei testi''.
+    \item Tocca l'icona di cancellazione.
+    \item L'app mostra un alert di conferma.
+    \item Su conferma, invia \endpoint{DELETE}{/api/songs/<id>}.
+    \item Il backend verifica la proprietà e cancella; risponde 200.
+\end{enumerate}
+
+\subparagraph{Extensions:}
+\begin{itemize}
+    \item \textbf{4a:} l'utente annulla l'alert $\Rightarrow$ nessuna azione.
+    \item \textbf{5a:} brano non di proprietà $\Rightarrow$ 403.
+\end{itemize}
+
+% =====================================================================
+\paragraph{UC7 --- Gestione del catalogo (Amministratore)}\hfill\\
+\textbf{Scope:} moderazione contenuti.\\
+\textbf{Level:} user-goal.\\
+\textbf{Intention in context:} l'amministratore vuole visionare e moderare
+l'intero catalogo, inclusi i brani anonimi che un utente normale non può
+gestire.\\
+\textbf{Primary actor:} Amministratore.
+
+\textbf{Precondition:} l'amministratore è autenticato con un account
+avente \code{is\_admin = true}.\\
+\textbf{Minimum guarantees:} un utente non-admin non può accedere alle
+funzioni di amministrazione.\\
+\textbf{Success guarantees:} l'amministratore visualizza il catalogo
+filtrato e può eliminare qualsiasi brano.
+
+\subparagraph{Main success scenario:}
+\begin{enumerate}
+    \item L'amministratore apre la schermata ``Admin''.
+    \item L'app invia \endpoint{GET}{/admin/songs} con il JWT in header.
+    \item Il backend verifica \code{is\_admin}; se falso risponde 403.
+    \item Il backend restituisce l'elenco completo dei brani, inclusi
+    quelli con \code{user\_id = NULL} (anonimi).
+    \item L'amministratore può filtrare per testo (\code{q}), per brani
+    anonimi (\code{anonymous=true}) o per utente (\code{user\_id}).
+    \item Per eliminare un brano, l'app invia
+    \endpoint{DELETE}{/api/songs/<id>}; il backend accetta la richiesta
+    poiché rileva il flag \code{is\_admin}.
+\end{enumerate}
+
+\subparagraph{Extensions:}
+\begin{itemize}
+    \item \textbf{3a:} JWT mancante o scaduto $\Rightarrow$ 401.
+    \item \textbf{3b:} utente autenticato ma non admin $\Rightarrow$ 403.
+\end{itemize}

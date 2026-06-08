@@ -1,0 +1,41 @@
+\section{Architettura hardware e software}
+
+\subsection{Componenti software}
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{@{}llX@{}}
+        \toprule
+        \textbf{Strato} & \textbf{Componente} & \textbf{Ruolo} \\
+        \midrule
+        Server & Python 3.10+ & Runtime del backend \\
+        Server & Flask 3.1 + SQLAlchemy 3.1 & Framework REST e ORM \\
+        Server & Flask-JWT-Extended 4.7 & Emissione/verifica dei token JWT \\
+        Server & Flask-CORS 6.0 & Gestione delle policy CORS \\
+        Server & SQLite (file \code{.db}) & Database relazionale embedded \\
+        Server & werkzeug.security & Hashing password (PBKDF2-SHA256) \\
+        Client & React Native 0.81 + Expo SDK 54 & UI mobile cross-platform \\
+        Client & expo-router 6 & Routing file-based \\
+        Client & expo-secure-store (opz.) & Keychain/Keystore per i token \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Stack software.}
+\end{table}
+
+\subsection{Infrastruttura}
+In ambiente di sviluppo il backend gira come singolo processo Python sulla
+macchina del team (port 5000). La mobile app viene servita da Metro
+bundler di Expo e si collega al backend via IP della LAN.
+
+In ambiente di produzione si assume il seguente schema di deployment
+tipico:
+
+\begin{figure}[H]
+    \centering
+    % \includegraphics[width=0.85\textwidth]{architettura-deployment.png}
+    \fbox{\parbox{0.85\textwidth}{\centering\vspace{1em}
+        \TODO{Inserire diagramma di deployment (Internet $\to$ Reverse
+        Proxy con TLS $\to$ Flask/Gunicorn $\to$ SQLite/PostgreSQL).}
+        \vspace{1em}}}
+    \caption{Schema di deployment in produzione.}
+    \label{fig:deploy}
+\end{figure}

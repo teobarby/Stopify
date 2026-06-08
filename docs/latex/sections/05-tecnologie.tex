@@ -1,0 +1,97 @@
+\section{Tecnologie utilizzate}
+
+\subsection{Backend}
+
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{@{}llX@{}}
+        \toprule
+        \textbf{Tecnologia} & \textbf{Versione} & \textbf{Motivazione della scelta} \\
+        \midrule
+        Python & 3.10+ &
+        Runtime del backend. Linguaggio ad alto livello con un ecosistema
+        maturo per lo sviluppo web e la gestione dei dati. \\
+
+        Flask & 3.1 &
+        Framework REST leggero e flessibile; non impone strutture rigide,
+        permettendo di organizzare il codice secondo il pattern
+        \emph{Routes $\to$ Services $\to$ Models}. \\
+
+        Flask-SQLAlchemy & 3.1 &
+        ORM che astrae il database in classi Python, garantisce query
+        parametrizzate (prevenzione SQL injection) e facilita la
+        migrazione futura verso DBMS alternativi. \\
+
+        SQLite & embedded &
+        Database relazionale senza server separato; adatto alla fase di
+        sviluppo e prototipazione. In produzione è sostituibile con
+        PostgreSQL senza modificare le API. \\
+
+        Flask-JWT-Extended & 4.7 &
+        Gestione nativa di access token JWT con algoritmo HS256 e
+        verifica automatica della firma e della scadenza. \\
+
+        Flask-CORS & 6.0 &
+        Abilita le intestazioni CORS necessarie per le richieste
+        cross-origin dall'app mobile (e da browser in fase di sviluppo). \\
+
+        werkzeug.security & — &
+        Funzioni \code{generate\_password\_hash} e
+        \code{check\_password\_hash} basate su PBKDF2-SHA256 con salt
+        randomico; inclusa nell'ecosistema Flask, senza dipendenze
+        aggiuntive. \\
+
+        \bottomrule
+    \end{tabularx}
+    \caption{Stack tecnologico del backend.}
+\end{table}
+
+\subsection{App Mobile}
+
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{@{}llX@{}}
+        \toprule
+        \textbf{Tecnologia} & \textbf{Versione} & \textbf{Motivazione della scelta} \\
+        \midrule
+        React Native & 0.81 &
+        Framework che genera UI native per iOS e Android da un'unica
+        codebase JavaScript/TypeScript, riducendo costi di manutenzione
+        rispetto ad app separate. \\
+
+        Expo SDK & 54 &
+        Toolchain che semplifica build, hot-reload e accesso alle API
+        native (fotocamera, storage sicuro, ecc.) senza configurare
+        progetti Xcode o Android Studio. \\
+
+        expo-router & 6 &
+        Routing file-based (ogni file in \code{app/} diventa una route),
+        con supporto a layout annidati e navigazione type-safe. \\
+
+        TypeScript & — &
+        Tipizzazione statica che riduce i bug a runtime e migliora
+        l'autocompletamento negli IDE. Particolarmente utile per la
+        definizione dei tipi delle risposte REST. \\
+
+        expo-secure-store & — &
+        Persiste il JWT nel Keychain (iOS) o Keystore (Android), le
+        aree di storage cifrate del sistema operativo; su Web ricade
+        su \code{localStorage}. \\
+
+        \bottomrule
+    \end{tabularx}
+    \caption{Stack tecnologico dell'app mobile.}
+\end{table}
+
+\subsection{Protocollo di comunicazione}
+
+Il trasferimento dati tra app mobile e backend avviene tramite
+\textbf{HTTP/1.1} con payload \textbf{JSON} codificato UTF-8, in
+conformità alla specifica LRCLIB. I client autenticati allegano il token
+nell'header \code{Authorization: Bearer <jwt>}; le pubblicazioni
+anonime usano l'header custom \code{X-Publish-Token: <prefix>:<nonce>}.
+
+In ambiente di sviluppo le comunicazioni avvengono in HTTP non cifrato
+sulla rete locale. In produzione è previsto HTTPS con TLS terminato
+da un reverse proxy (nginx o Caddy), come dettagliato nella
+sezione~\ref{sec:sicurezza}.
