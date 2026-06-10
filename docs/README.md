@@ -19,7 +19,7 @@ Sistema per la raccolta e consultazione di **lyrics musicali** (testi piani e si
 7. [Autenticazione e Proof of Work](#7-autenticazione-e-proof-of-work)
 8. [Sicurezza](#8-sicurezza)
 9. [Setup e avvio](#9-setup-e-avvio)
-10. [Struttura del repository](#10-struttura-del-repository)
+10. [Struttura del repository](#10-struttura-del-progetto)
 
 ---
 
@@ -140,33 +140,9 @@ Client HTTP
 
 ## 5. Schema del database
 
-```
-┌──────────────────────┐
-│        users         │
-├──────────────────────┤
-│ id PK                │
-│ username             │
-│ email                │
-│ password_hash        │
-│ is_admin             │
-└──────────┬───────────┘
-           │ user_id (nullable)
-           ▼
-┌──────────────────────┐
-│        songs         │
-├──────────────────────┤
-│ id PK                │
-│ title                │
-│ artist_name          │
-│ album_name (nullable)│
-│ user_id FK (nullable)│
-│ lyrics               │
-│ synced_lyrics (JSON) │
-│ duration             │
-│ instrumental         │
-│ created_at           │
-└──────────────────────┘
-```
+![Schema ER — notazione Chen](db/ER.png)
+
+> 📊 Sorgente editabile: [`ER.drawio`](db/ER.drawio) · [versione PDF](db/ER.pdf)
 
 **Scelte progettuali:**
 

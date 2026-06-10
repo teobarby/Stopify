@@ -1,0 +1,111 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="ER Chen - Stopify" id="er-chen-stopify">
+    <mxGraphModel dx="849" dy="453" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="user" parent="1" style="whiteSpace=wrap;html=1;fontStyle=1;fontSize=14;" value="USER" vertex="1">
+          <mxGeometry height="70" width="140" x="460" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="song" parent="1" style="whiteSpace=wrap;html=1;fontStyle=1;fontSize=14;" value="SONG" vertex="1">
+          <mxGeometry height="70" width="140" x="980" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="rel" parent="1" style="rhombus;whiteSpace=wrap;html=1;" value="Pubblica" vertex="1">
+          <mxGeometry height="60" width="130" x="690" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="u_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fontStyle=4;" value="id" vertex="1">
+          <mxGeometry height="40" width="150" x="500" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="u_username" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="username" vertex="1">
+          <mxGeometry height="40" width="150" x="320" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="u_email" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="email" vertex="1">
+          <mxGeometry height="40" width="150" x="250" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="u_password" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="password_hash" vertex="1">
+          <mxGeometry height="40" width="150" x="370" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="u_admin" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="is_admin" vertex="1">
+          <mxGeometry height="40" width="150" x="540" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="s_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fontStyle=4;" value="id" vertex="1">
+          <mxGeometry height="40" width="150" x="830" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="s_title" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="title" vertex="1">
+          <mxGeometry height="40" width="150" x="940" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="s_artist" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="artist_name" vertex="1">
+          <mxGeometry height="40" width="150" x="1060" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="s_album" parent="1" style="ellipse;whiteSpace=wrap;html=1;strokeColor=default;" value="album_name" vertex="1">
+          <mxGeometry height="40" width="150" x="1130" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="s_lyrics" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="lyrics" vertex="1">
+          <mxGeometry height="40" width="150" x="1190" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="s_synced" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="synced_lyrics" vertex="1">
+          <mxGeometry height="40" width="150" x="1250" y="425" as="geometry" />
+        </mxCell>
+        <mxCell id="s_duration" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="duration" vertex="1">
+          <mxGeometry height="40" width="150" x="1120" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="s_instrumental" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="instrumental" vertex="1">
+          <mxGeometry height="40" width="150" x="1020" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="s_created" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="created_at" vertex="1">
+          <mxGeometry height="40" width="150" x="880" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="eu1" edge="1" parent="1" source="u_id" style="endArrow=none;html=1;" target="user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eu2" edge="1" parent="1" source="u_username" style="endArrow=none;html=1;" target="user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eu3" edge="1" parent="1" source="u_email" style="endArrow=none;html=1;" target="user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eu4" edge="1" parent="1" source="u_password" style="endArrow=none;html=1;" target="user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eu5" edge="1" parent="1" source="u_admin" style="endArrow=none;html=1;" target="user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es1" edge="1" parent="1" source="s_id" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es2" edge="1" parent="1" source="s_title" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es3" edge="1" parent="1" source="s_artist" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es4" edge="1" parent="1" source="s_album" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es5" edge="1" parent="1" source="s_lyrics" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es6" edge="1" parent="1" source="s_synced" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es7" edge="1" parent="1" source="s_duration" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es8" edge="1" parent="1" source="s_instrumental" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="es9" edge="1" parent="1" source="s_created" style="endArrow=none;html=1;" target="song">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er1" edge="1" parent="1" source="user" style="endArrow=none;html=1;fontSize=14;fontStyle=1;" target="rel" value="(0, N)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er2" edge="1" parent="1" source="rel" style="endArrow=none;html=1;fontSize=14;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="song" value="(0, 1)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="415" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
