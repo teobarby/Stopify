@@ -103,6 +103,14 @@ oltre a ulteriori API per la gestione degli accessi e del ruolo admin:
                                                      └────────────────────┘
 ```
 
+### Diagramma delle classi (modello di dominio)
+
+Le entità principali del sistema e la loro associazione, in notazione UML:
+
+![Diagramma delle classi — UML](class-diagram.png)
+
+> 📐 Sorgente editabile: [`class-diagram.drawio`](class-diagram.drawio) · [versione PDF](class-diagram.pdf)
+
 ### Architettura a strati del backend
 
 Il backend è organizzato secondo il pattern *Routes → Services → Models*, che garantisce separazione delle responsabilità e testabilità della logica di business indipendentemente dal layer HTTP.

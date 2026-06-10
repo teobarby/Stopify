@@ -1,0 +1,57 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Class Diagram - Stopify" id="class-diagram-stopify">
+    <mxGraphModel dx="934" dy="498" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="user" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="User" vertex="1">
+          <mxGeometry height="160" width="260" x="140" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="user_attrs" parent="user" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=8;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;" value="&lt;u&gt;- id: int&lt;br&gt;&lt;/u&gt;- username: str&lt;br&gt;- email: str&lt;br&gt;- password_hash: str&lt;br&gt;- is_admin: bool" vertex="1">
+          <mxGeometry height="100" width="260" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="user_line" parent="user" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="8" width="260" y="126" as="geometry" />
+        </mxCell>
+        <mxCell id="user_ops" parent="user" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=8;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;" value="+ to_dict(): dict" vertex="1">
+          <mxGeometry height="26" width="260" y="134" as="geometry" />
+        </mxCell>
+        <mxCell id="song" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Song" vertex="1">
+          <mxGeometry height="240" width="320" x="620" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="song_attrs" parent="song" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=8;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;" value="&lt;u&gt;- id: int&lt;br&gt;&lt;/u&gt;- title: str&lt;br&gt;- artist_name: str&lt;br&gt;- album_name: str [0..1]&lt;br&gt;- lyrics: str&lt;br&gt;- synced_lyrics: str [0..1]&lt;br&gt;- duration: float [0..1]&lt;br&gt;- instrumental: bool&lt;br&gt;- created_at: datetime" vertex="1">
+          <mxGeometry height="180" width="320" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="song_line" parent="song" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=#6c8ebf;" value="" vertex="1">
+          <mxGeometry height="8" width="320" y="206" as="geometry" />
+        </mxCell>
+        <mxCell id="song_ops" parent="song" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=8;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;" value="+ to_lrclib(): dict" vertex="1">
+          <mxGeometry height="26" width="320" y="214" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc" edge="1" parent="1" source="user" style="endArrow=none;html=1;fontSize=12;fontStyle=2;" target="song" value="pubblica ►">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_m1" connectable="0" parent="assoc" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=12;" value="0..1" vertex="1">
+          <mxGeometry relative="1" x="-0.85" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc_r1" connectable="0" parent="assoc" style="edgeLabel;html=1;align=center;verticalAlign=top;fontSize=11;fontColor=#666666;" value="autore" vertex="1">
+          <mxGeometry relative="1" x="-0.85" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc_m2" connectable="0" parent="assoc" style="edgeLabel;html=1;align=center;verticalAlign=bottom;fontSize=12;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="0.85" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="assoc_r2" connectable="0" parent="assoc" style="edgeLabel;html=1;align=center;verticalAlign=top;fontSize=11;fontColor=#666666;" value="brani" vertex="1">
+          <mxGeometry relative="1" x="0.85" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
