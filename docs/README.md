@@ -97,9 +97,9 @@ oltre a ulteriori API per la gestione degli accessi e del ruolo admin:
 
 Le entità principali del sistema e la loro associazione, in notazione UML:
 
-![Diagramma delle classi — UML](images/class-diagram.png)
+![Diagramma delle classi — UML](images/class-diagram.svg)
 
-> 📐 Sorgente editabile: [`class-diagram.drawio`](images/class-diagram.drawio) · [versione PDF](images/class-diagram.pdf)
+> 📐 Sorgente editabile: [`class-diagram.svg`](images/class-diagram.svg) · [originale draw.io](images/class-diagram.drawio) · [versione PDF](images/class-diagram.pdf)
 
 ### Architettura a strati del backend
 
@@ -123,9 +123,9 @@ app/
 
 ## 5. Schema del database
 
-![Schema ER — notazione Chen](images/db/ER.png)
+![Schema ER — notazione Chen](images/db/ER.svg)
 
-> 📊 Sorgente editabile: [`ER.drawio`](images/db/ER.drawio) · [versione PDF](images/db/ER.pdf)
+> 📊 Sorgente editabile: [`ER.svg`](images/db/ER.svg) · [originale draw.io](images/db/ER.drawio) · [versione PDF](images/db/ER.pdf)
 
 **Scelte progettuali:**
 

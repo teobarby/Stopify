@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="440" viewBox="0 0 800 440">
+  <rect x="0" y="0" width="800" height="440" fill="#ffffff"/>
+
+  <text x="400" y="44" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="bold" fill="#263238">Diagramma delle classi — UML</text>
+
+  <!-- Association line -->
+  <line x1="320" y1="233" x2="480" y2="233" stroke="#37474f" stroke-width="2"/>
+  <text x="400" y="225" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" font-style="italic" font-weight="bold" fill="#263238">pubblica ▶</text>
+  <text x="338" y="225" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#263238">0..1</text>
+  <text x="338" y="252" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#90a4ae">autore</text>
+  <text x="462" y="225" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#263238">0..*</text>
+  <text x="462" y="252" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#90a4ae">brani</text>
+
+  <!-- User class -->
+  <rect x="70" y="176" width="250" height="118" fill="#ffffff" stroke="#1565c0" stroke-width="2"/>
+  <rect x="70" y="294" width="250" height="32" fill="#ffffff" stroke="#1565c0" stroke-width="2"/>
+  <rect x="70" y="140" width="250" height="36" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+  <text x="195" y="164" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="17" font-weight="bold" fill="#0d47a1">User</text>
+  <text x="82" y="199" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238" text-decoration="underline">- id: int</text>
+  <text x="82" y="220" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- username: str</text>
+  <text x="82" y="241" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- email: str</text>
+  <text x="82" y="262" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- password_hash: str</text>
+  <text x="82" y="283" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- is_admin: bool</text>
+  <text x="82" y="315" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">+ to_dict(): dict</text>
+
+  <!-- Song class -->
+  <rect x="480" y="136" width="250" height="202" fill="#ffffff" stroke="#2e7d32" stroke-width="2"/>
+  <rect x="480" y="338" width="250" height="32" fill="#ffffff" stroke="#2e7d32" stroke-width="2"/>
+  <rect x="480" y="100" width="250" height="36" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+  <text x="605" y="124" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="17" font-weight="bold" fill="#1b5e20">Song</text>
+  <text x="492" y="159" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238" text-decoration="underline">- id: int</text>
+  <text x="492" y="180" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- title: str</text>
+  <text x="492" y="201" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- artist_name: str</text>
+  <text x="492" y="222" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- album_name: str [0..1]</text>
+  <text x="492" y="243" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- lyrics: str</text>
+  <text x="492" y="264" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- synced_lyrics: str [0..1]</text>
+  <text x="492" y="285" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- duration: float [0..1]</text>
+  <text x="492" y="306" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- instrumental: bool</text>
+  <text x="492" y="327" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">- created_at: datetime</text>
+  <text x="492" y="359" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#263238">+ to_lrclib(): dict</text>
+
+  <text x="400" y="420" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#90a4ae">Stopify — modello di dominio</text>
+</svg>
