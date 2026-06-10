@@ -149,7 +149,6 @@ Client HTTP
 │ email                │
 │ password_hash        │
 │ is_admin             │
-│ created_at           │
 └──────────┬───────────┘
            │ user_id (nullable)
            ▼

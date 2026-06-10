@@ -34,7 +34,6 @@ export interface AuthUser {
   username: string;
   email: string;
   is_admin: boolean;
-  created_at: string;
 }
 
 export interface AuthSession {
