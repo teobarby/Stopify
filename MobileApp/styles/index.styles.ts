@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { PRIMARY, BG_MID, TEXT_MUTED, TEXT_SOFT } from '@/constants/theme';
 
 export default StyleSheet.create({
@@ -100,6 +100,7 @@ export default StyleSheet.create({
 
   logoContainer: {
     marginBottom: 10,
+    marginTop: Platform.OS === 'web' ? 60 : 120,
   },
 
   logoGradient: {

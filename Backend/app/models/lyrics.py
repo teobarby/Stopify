@@ -3,33 +3,13 @@ from datetime import datetime, timezone
 from app.extensions import db
 
 
-class Artist(db.Model):
-    __tablename__ = "artists"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False, unique=True)
-
-    songs = db.relationship("Song", backref="artist", lazy=True)
-    albums = db.relationship("Album", backref="artist", lazy=True)
-
-
-class Album(db.Model):
-    __tablename__ = "albums"
-
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(300), nullable=False)
-    artist_id = db.Column(db.Integer, db.ForeignKey("artists.id"), nullable=False)
-
-    songs = db.relationship("Song", backref="album", lazy=True)
-
-
 class Song(db.Model):
     __tablename__ = "songs"
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(300), nullable=False)
-    artist_id = db.Column(db.Integer, db.ForeignKey("artists.id"), nullable=False)
-    album_id = db.Column(db.Integer, db.ForeignKey("albums.id"), nullable=True)
+    artist_name = db.Column(db.String(200), nullable=False)
+    album_name = db.Column(db.String(300), nullable=True)
     lyrics = db.Column(db.Text, nullable=False)
     synced_lyrics = db.Column(db.Text, nullable=True)
     duration = db.Column(db.Float, nullable=True)
@@ -44,8 +24,8 @@ class Song(db.Model):
         return {
             "id": self.id,
             "trackName": self.title,
-            "artistName": self.artist.name if self.artist else None,
-            "albumName": self.album.title if self.album else None,
+            "artistName": self.artist_name,
+            "albumName": self.album_name,
             "duration": self.duration,
             "instrumental": bool(self.instrumental),
             "plainLyrics": self.lyrics or "",

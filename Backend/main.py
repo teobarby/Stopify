@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash
 
 from app import create_app
 from app.extensions import db
-from app.models import Album, Artist, Song, User
+from app.models import Song, User
 
 app = create_app()
 
@@ -169,26 +169,6 @@ SEED_CATALOG = [
 def _seed():
     """Popola il database con dati di esempio (testi originali)."""
     for entry in SEED_CATALOG:
-        # Artist
-        artist = Artist.query.filter(Artist.name.ilike(entry["artist"])).first()
-        if not artist:
-            artist = Artist(name=entry["artist"])
-            db.session.add(artist)
-            db.session.flush()
-
-        # Album
-        album = Album.query.filter(
-            Album.title.ilike(entry["album"]),
-            Album.artist_id == artist.id,
-        ).first()
-        if not album:
-            album = Album(
-                title=entry["album"],
-                artist_id=artist.id,
-            )
-            db.session.add(album)
-            db.session.flush()
-
         # Plain lyrics: rebuild from synced lines, raggruppando in strofe
         # da 4 righe ciascuna
         lines = [text for _, text in entry["synced"]]
@@ -204,8 +184,8 @@ def _seed():
 
         song = Song(
             title=entry["title"],
-            artist_id=artist.id,
-            album_id=album.id,
+            artist_name=entry["artist"],
+            album_name=entry["album"],
             lyrics=plain_lyrics,
             synced_lyrics=synced_json,
             duration=entry["duration"],
@@ -221,7 +201,7 @@ def _seed():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-        if Artist.query.count() == 0:
+        if Song.query.count() == 0:
             _seed()
         _seed_admin()
     app.run(host="0.0.0.0", port=5000, debug=True)

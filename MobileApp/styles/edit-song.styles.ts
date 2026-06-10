@@ -1,5 +1,5 @@
-import { StyleSheet, Platform } from 'react-native';
-import { PRIMARY, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from '@/constants/theme';
+import { StyleSheet } from 'react-native';
+import { PRIMARY, TEXT_MUTED } from '@/constants/theme';
 
 export default StyleSheet.create({
     container: { flex: 1 },
@@ -89,54 +89,6 @@ export default StyleSheet.create({
         overflow: "hidden",
         borderWidth: 1,
         borderColor: "#ffffff10",
-    },
-
-    field: { gap: 8 },
-
-    label: {
-        color: TEXT_SOFT,
-        fontSize: 13,
-        fontWeight: "600",
-    },
-
-    inputWrapper: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#ffffff08",
-        borderWidth: 1,
-        borderColor: "#ffffff10",
-        borderRadius: 16,
-        paddingHorizontal: 14,
-        gap: 10,
-    },
-
-    input: {
-        flex: 1,
-        height: 52,
-        color: "white",
-        fontSize: 15,
-    },
-
-    textArea: {
-        flex: 1,
-        minHeight: 160,
-        color: "white",
-        fontSize: 14,
-        paddingTop: 16,
-    },
-
-    textAreaSmall: {
-        flex: 1,
-        minHeight: 100,
-        color: "white",
-        fontSize: 13,
-        paddingTop: 14,
-        fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    },
-
-    hint: {
-        color: TEXT_DIM,
-        fontSize: 11,
     },
 
     errorBox: {

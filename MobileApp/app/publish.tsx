@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import {
-  TextInput,
   TouchableOpacity,
   ScrollView,
   View,
@@ -16,10 +15,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
+import { FormField } from "@/components/form-field";
 import { api, solvePoWLRCLIB } from "../src/api";
 import { useAuth } from "../src/AuthContext";
-import { showAlert } from "../src/dialog";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import { showAlert, showConfirm } from "../src/dialog";
+import { parseLyrics, validateSong } from "../src/lyrics";
+import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT } from "@/constants/theme";
 import styles from '@/styles/publish.styles';
 
 type Step = "form" | "pow" | "sending" | "done";
@@ -31,33 +33,45 @@ export default function PublishScreen() {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [album, setAlbum] = useState("");
+  const [duration, setDuration] = useState("");
   const [lyrics, setLyrics] = useState("");
 
   const [step, setStep] = useState<Step>("form");
   const [powProgress, setPowProgress] = useState("");
 
-  const validate = (): string | null => {
-    if (!title.trim()) return "Inserisci il titolo.";
-    if (!artist.trim()) return "Inserisci l'artista.";
-    if (!lyrics.trim()) return "Inserisci il testo del brano.";
-    if (lyrics.trim().length < 20)
-      return "Il testo è troppo breve.";
-    return null;
-  };
-
   const handlePublish = async () => {
-    const err = validate();
+    const err = validateSong({ title, artist, lyrics, duration });
 
     if (err) {
       showAlert("Warning", err);
       return;
     }
 
+    // Anti-duplicato: lookup LRCLIB per signature (titolo + artista [+ album/durata]).
+    const existing = await api.getBySignature({
+      trackName: title.trim(),
+      artistName: artist.trim(),
+      albumName: album.trim() || undefined,
+      duration: duration ? Number(duration) : undefined,
+    });
+    if (existing) {
+      const proceed = await showConfirm(
+        "Brano già esistente",
+        `Esiste già "${existing.trackName}" di ${existing.artistName} nel catalogo. Vuoi pubblicarlo comunque?`,
+        { confirmLabel: "Pubblica comunque", cancelLabel: "Annulla" }
+      );
+      if (!proceed) return;
+    }
+
+    const { plainLyrics, syncedLyrics } = parseLyrics(lyrics);
+
     const body = {
       trackName: title.trim(),
       artistName: artist.trim(),
       albumName: album.trim() || undefined,
-      plainLyrics: lyrics.trim(),
+      duration: duration ? Number(duration) : undefined,
+      plainLyrics,
+      syncedLyrics,
     };
 
     try {
@@ -90,15 +104,6 @@ export default function PublishScreen() {
       setStep("form");
       showAlert("Errore", e.message || "Pubblicazione fallita.");
     }
-  };
-
-  const handleReset = () => {
-    setTitle("");
-    setArtist("");
-    setAlbum("");
-    setLyrics("");
-    setStep("form");
-    setPowProgress("");
   };
 
   if (step === "pow" || step === "sending") {
@@ -175,20 +180,20 @@ export default function PublishScreen() {
             </ThemedText>
 
             <ThemedText style={styles.successDesc}>
-              "{title}" di {artist} è ora disponibile
+              &quot;{title}&quot; di {artist} è ora disponibile
               nel catalogo.
             </ThemedText>
 
             <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={handleReset}
+                onPress={() => router.replace("/")}
             >
               <LinearGradient
                   colors={[PRIMARY, PRIMARY_DEEP]}
                   style={styles.primaryButton}
               >
                 <ThemedText style={styles.primaryButtonText}>
-                  Pubblica un altro
+                  Home
                 </ThemedText>
               </LinearGradient>
             </TouchableOpacity>
@@ -198,21 +203,16 @@ export default function PublishScreen() {
   }
 
   return (
-      <LinearGradient
-          colors={BG_GRADIENT}
-          style={styles.container}
-      >
+      <Screen style={styles.container}>
         <KeyboardAvoidingView
             style={{ flex: 1 }}
-            behavior={
-              Platform.OS === "ios"
-                  ? "padding"
-                  : undefined
-            }
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <ScrollView
+              style={{ flex: 1 }}
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
           >
             <View style={styles.header}>
               <TouchableOpacity
@@ -243,7 +243,7 @@ export default function PublishScreen() {
                 tint="dark"
                 style={styles.formCard}
             >
-              <InputField
+              <FormField
                   label="Titolo"
                   icon="musical-note"
                   value={title}
@@ -251,7 +251,7 @@ export default function PublishScreen() {
                   placeholder="es. Inno alla Pizza"
               />
 
-              <InputField
+              <FormField
                   label="Artista"
                   icon="person"
                   value={artist}
@@ -259,7 +259,7 @@ export default function PublishScreen() {
                   placeholder="es. Matteo"
               />
 
-              <InputField
+              <FormField
                   label="Album"
                   icon="albums"
                   value={album}
@@ -267,29 +267,24 @@ export default function PublishScreen() {
                   placeholder="opzionale"
               />
 
-              <View style={styles.field}>
-                <ThemedText style={styles.label}>
-                  Testo
-                </ThemedText>
+              <FormField
+                  label="Durata (secondi)"
+                  icon="time"
+                  value={duration}
+                  onChangeText={setDuration}
+                  placeholder="opzionale"
+                  keyboardType="numeric"
+              />
 
-                <View style={styles.inputWrapper}>
-                  <Ionicons
-                      name="document-text"
-                      size={18}
-                      color={TEXT_MUTED}
-                  />
-
-                  <TextInput
-                      value={lyrics}
-                      onChangeText={setLyrics}
-                      placeholder="Incolla qui il testo del brano…"
-                      placeholderTextColor={TEXT_DIM}
-                      multiline
-                      textAlignVertical="top"
-                      style={styles.textArea}
-                  />
-                </View>
-              </View>
+              <FormField
+                  label="Testo"
+                  icon="document-text"
+                  value={lyrics}
+                  onChangeText={setLyrics}
+                  placeholder={"Testo semplice, oppure con timestamp LRC:\n[00:00.00] prima riga\n[00:04.50] seconda riga"}
+                  multiline
+                  hint="I timestamp [mm:ss.xx] vengono rilevati automaticamente."
+              />
 
               <LinearGradient
                   colors={
@@ -341,40 +336,6 @@ export default function PublishScreen() {
             </BlurView>
           </ScrollView>
         </KeyboardAvoidingView>
-      </LinearGradient>
-  );
-}
-
-interface InputFieldProps {
-  label: string;
-  icon: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder?: string;
-}
-
-function InputField({ label, icon, value, onChangeText, placeholder }: InputFieldProps) {
-  return (
-      <View style={styles.field}>
-        <ThemedText style={styles.label}>
-          {label}
-        </ThemedText>
-
-        <View style={styles.inputWrapper}>
-          <Ionicons
-              name={icon}
-              size={18}
-              color={TEXT_MUTED}
-          />
-
-          <TextInput
-              value={value}
-              onChangeText={onChangeText}
-              placeholder={placeholder}
-              placeholderTextColor={TEXT_DIM}
-              style={styles.input}
-          />
-        </View>
-      </View>
+      </Screen>
   );
 }

@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const SecureStore = Platform.OS !== "web" ? require("expo-secure-store") : null;
 
 const ls = typeof window !== "undefined" ? window.localStorage : null;

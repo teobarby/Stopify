@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
 export const PRIMARY = '#4A90E2';
 export const PRIMARY_DEEP = '#2563EB';
 
-export const BG_GRADIENT = ["#020617", "#0F172A", "#111827"];
+export const BG_GRADIENT = ["#020617", "#0F172A", "#111827"] as const;
 export const BG_DARK = "#020617";
 export const BG_MID = "#0F172A";
 

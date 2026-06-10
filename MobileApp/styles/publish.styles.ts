@@ -55,42 +55,6 @@ export default StyleSheet.create({
     gap: 18,
   },
 
-  field: {
-    gap: 8,
-  },
-
-  label: {
-    color: TEXT_SOFT,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#ffffff08",
-    borderWidth: 1,
-    borderColor: "#ffffff10",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-
-  input: {
-    flex: 1,
-    height: 56,
-    color: "white",
-    fontSize: 15,
-  },
-
-  textArea: {
-    flex: 1,
-    minHeight: 170,
-    color: "white",
-    fontSize: 15,
-    paddingTop: 18,
-  },
-
   infoCard: {
     flexDirection: "row",
     gap: 12,

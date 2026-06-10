@@ -1,8 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { withLayoutContext } from "expo-router";
-import { createStackNavigator } from "@react-navigation/stack";
-import { Easing, View } from "react-native";
+import {
+    createStackNavigator,
+    type StackCardInterpolationProps,
+} from "@react-navigation/stack";
+import { Easing, Platform, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
 import "react-native-reanimated";
 
@@ -18,7 +22,7 @@ const Stack = withLayoutContext(Navigator);
 // ─── Interpolatori animazione ─────────────────────────────────────────────────
 
 /** Apertura: fade in + slide su dal basso (comportamento originale). */
-function fadeFromBottom({ current }) {
+function fadeFromBottom({ current }: StackCardInterpolationProps) {
     return {
         cardStyle: {
             opacity: current.progress.interpolate({
@@ -36,7 +40,7 @@ function fadeFromBottom({ current }) {
 }
 
 /** Chiusura: slide verso destra. */
-function slideToRight({ current, layouts }) {
+function slideToRight({ current, layouts }: StackCardInterpolationProps) {
     return {
         cardStyle: {
             transform: [{
@@ -49,21 +53,7 @@ function slideToRight({ current, layouts }) {
     };
 }
 
-/** Modal: slide su dal basso. */
-function slideFromBottom({ current, layouts }) {
-    return {
-        cardStyle: {
-            transform: [{
-                translateY: current.progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [layouts.screen.height, 0],
-                }),
-            }],
-        },
-    };
-}
-
-const mainInterpolator = (props) =>
+const mainInterpolator = (props: StackCardInterpolationProps) =>
     props.closing ? slideToRight(props) : fadeFromBottom(props);
 
 const TIMING = {
@@ -75,6 +65,18 @@ const TIMING = {
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
+
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            const style = document.createElement('style');
+            style.textContent = `
+                html, body { height: 100%; }
+                body { overflow: hidden; }
+                #root { display: flex; height: 100%; flex: 1; }
+            `;
+            document.head.appendChild(style);
+        }
+    }, []);
 
     return (
         <AuthProvider>
@@ -102,20 +104,6 @@ export default function RootLayout() {
                         <Stack.Screen name="my-lyrics" />
                         <Stack.Screen name="edit-song/[id]" />
                         <Stack.Screen name="admin" />
-                        <Stack.Screen
-                            name="modal"
-                            options={{
-                                title: "Modal",
-                                cardStyleInterpolator: slideFromBottom,
-                                gestureDirection: "vertical",
-                                transitionSpec: { open: TIMING, close: TIMING },
-                                headerShown: true,
-                                headerStyle: { backgroundColor: BG_DARK },
-                                headerTintColor: "white",
-                                headerShadowVisible: false,
-                                headerTitleStyle: { fontWeight: "700" },
-                            }}
-                        />
                     </Stack>
                 </View>
                 <StatusBar style="light" />

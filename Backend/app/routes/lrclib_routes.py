@@ -6,7 +6,6 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.extensions import db
 from app.models.lyrics import Song
 from app.services.crypto_service import parse_publish_token
-from app.errors import AppError
 from app.services.auth_service import get_user_by_id
 from app.services.lyrics_service import (
     delete_song,
@@ -94,11 +93,7 @@ def publish():
         if parsed:
             prefix, nonce = parsed
 
-    try:
-        song = publish_song_lrclib(payload, prefix=prefix, nonce=nonce, user_id=user_id)
-    except AppError as e:
-        return _err(e.message, e.status)
-
+    song = publish_song_lrclib(payload, prefix=prefix, nonce=nonce, user_id=user_id)
     return jsonify(song.to_lrclib()), 201
 
 
@@ -116,10 +111,7 @@ def update_my_song(song_id: int):
     user_id = int(get_jwt_identity())
     payload = request.get_json(silent=True)
     user = get_user_by_id(user_id)
-    try:
-        song = update_song(song_id, payload, user_id, is_admin=bool(user and user.is_admin))
-    except AppError as e:
-        return _err(e.message, e.status)
+    song = update_song(song_id, payload, user_id, is_admin=bool(user and user.is_admin))
     return jsonify(song.to_lrclib()), 200
 
 
@@ -128,10 +120,7 @@ def update_my_song(song_id: int):
 def delete_my_song(song_id: int):
     user_id = int(get_jwt_identity())
     user = get_user_by_id(user_id)
-    try:
-        delete_song(song_id, user_id, is_admin=bool(user and user.is_admin))
-    except AppError as e:
-        return _err(e.message, e.status)
+    delete_song(song_id, user_id, is_admin=bool(user and user.is_admin))
     return jsonify({"deleted": song_id}), 200
 
 

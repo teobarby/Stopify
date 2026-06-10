@@ -13,10 +13,11 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
 import { api, LrclibSong } from "../src/api";
 import { useAuth } from "../src/AuthContext";
 import { showAlert, showConfirm } from "../src/dialog";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import { PRIMARY, PRIMARY_DEEP, TEXT_SOFT } from "@/constants/theme";
 import styles from '@/styles/my-lyrics.styles';
 
 export default function MyLyricsScreen() {
@@ -128,10 +129,7 @@ export default function MyLyricsScreen() {
     );
 
     return (
-        <LinearGradient
-            colors={BG_GRADIENT}
-            style={styles.container}
-        >
+        <Screen style={styles.container}>
             <View style={styles.glowOne} />
             <View style={styles.glowTwo} />
 
@@ -167,6 +165,7 @@ export default function MyLyricsScreen() {
                 />
             ) : (
                 <FlatList
+                    style={{ flex: 1 }}
                     data={songs}
                     keyExtractor={(item) => String(item.id)}
                     renderItem={renderItem}
@@ -221,6 +220,6 @@ export default function MyLyricsScreen() {
                     }
                 />
             )}
-        </LinearGradient>
+        </Screen>
     );
 }

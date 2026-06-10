@@ -4,11 +4,13 @@
  */
 
 import { storage } from "./storage";
+import { sha256 } from "./sha256";
 
 import Constants from "expo-constants";
-const BASE_URL =
+const PRIMARY_URL =
     Constants.expoConfig?.extra?.apiBaseUrl
     ?? "http://localhost:5000";
+const FALLBACK_URL = "http://localhost:5000";
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
 export interface SyncedLine {
@@ -66,6 +68,19 @@ interface FetchOptions {
   authed?: boolean;
 }
 
+async function fetchWithFallback(url: string, init: RequestInit): Promise<Response> {
+  if (!url.startsWith(PRIMARY_URL) || PRIMARY_URL === FALLBACK_URL) {
+    return fetch(url, init);
+  }
+  try {
+    const res = await fetch(url, init);
+    return res;
+  } catch {
+    const fallbackUrl = url.replace(PRIMARY_URL, FALLBACK_URL);
+    return fetch(fallbackUrl, init);
+  }
+}
+
 async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
   const headers: Record<string, string> = { ...(opts.headers || {}) };
 
@@ -78,7 +93,7 @@ async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
     if (access) headers["Authorization"] = `Bearer ${access}`;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetchWithFallback(`${PRIMARY_URL}${path}`, {
     method: opts.method || "GET",
     headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
@@ -158,6 +173,31 @@ export const api = {
 
   /** GET /api/get/:id */
   getSong: (id: number) => get<LrclibSong>(`/api/get/${id}`),
+
+  /**
+   * GET /api/get?track_name=&artist_name=&album_name=&duration=
+   * Lookup LRCLIB per signature. Ritorna il brano se esiste, `null` se non
+   * trovato (404) o in caso di errore — così il chiamante non viene bloccato.
+   */
+  async getBySignature(params: {
+    trackName: string;
+    artistName: string;
+    albumName?: string;
+    duration?: number;
+  }): Promise<LrclibSong | null> {
+    const mapped: Record<string, string> = {
+      track_name: params.trackName,
+      artist_name: params.artistName,
+    };
+    if (params.albumName) mapped.album_name = params.albumName;
+    if (params.duration != null) mapped.duration = String(params.duration);
+    const qs = new URLSearchParams(mapped).toString();
+    try {
+      return await get<LrclibSong>(`/api/get?${qs}`);
+    } catch {
+      return null;
+    }
+  },
 
   // ── LRCLIB-spec ───────────────────────────────────────────────────────────
 
@@ -251,9 +291,6 @@ export const api = {
 };
 
 // ─── Proof of Work solver (client-side) ───────────────────────────────────────
-
-import { sha256 } from "./sha256";
-
 
 /**
  * Risolve la PoW LRCLIB-style: trova un nonce tale che

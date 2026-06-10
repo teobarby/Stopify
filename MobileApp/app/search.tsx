@@ -20,8 +20,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
 import { api, LrclibSong } from "../src/api";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import { PRIMARY, PRIMARY_DEEP, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
 import styles from '@/styles/search.styles';
 
 export default function SearchScreen() {
@@ -88,10 +89,7 @@ export default function SearchScreen() {
   );
 
   return (
-      <LinearGradient
-          colors={BG_GRADIENT}
-          style={styles.container}
-      >
+      <Screen style={styles.container}>
         <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -220,6 +218,6 @@ export default function SearchScreen() {
               }
           />
         </KeyboardAvoidingView>
-      </LinearGradient>
+      </Screen>
   );
 }

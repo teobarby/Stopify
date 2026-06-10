@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 
 from app.config import Config
+from app.errors import AppError
 from app.extensions import cors, db, jwt
 
 
@@ -22,6 +23,10 @@ def create_app(config_class: type = Config) -> Flask:
     app.register_blueprint(admin_bp)   # /admin/*
 
     # Error handlers
+    @app.errorhandler(AppError)
+    def app_error(e: AppError):
+        return jsonify({"message": e.message}), e.status
+
     @app.errorhandler(404)
     def not_found(_e):
         return jsonify({"error": "Risorsa non trovata"}), 404

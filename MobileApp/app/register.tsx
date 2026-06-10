@@ -5,7 +5,6 @@
 
 import { useState } from "react";
 import {
-    TextInput,
     TouchableOpacity,
     View,
     KeyboardAvoidingView,
@@ -20,8 +19,10 @@ import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
+import { FormField } from "@/components/form-field";
 import { useAuth } from "../src/AuthContext";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import { PRIMARY, PRIMARY_DEEP } from "@/constants/theme";
 import styles from '@/styles/register.styles';
 
 export default function RegisterScreen() {
@@ -31,7 +32,6 @@ export default function RegisterScreen() {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [showPw, setShowPw] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -68,10 +68,7 @@ export default function RegisterScreen() {
     };
 
     return (
-        <LinearGradient
-            colors={BG_GRADIENT}
-            style={styles.container}
-        >
+        <Screen style={styles.container}>
             <View style={styles.glowOne} />
             <View style={styles.glowTwo} />
 
@@ -109,7 +106,7 @@ export default function RegisterScreen() {
 
                     {/* FORM */}
                     <BlurView intensity={30} tint="dark" style={styles.card}>
-                        <ValidatedField
+                        <FormField
                             label="Username"
                             icon="person"
                             value={username}
@@ -121,7 +118,7 @@ export default function RegisterScreen() {
                             autoCorrect={false}
                         />
 
-                        <ValidatedField
+                        <FormField
                             label="Email"
                             icon="mail"
                             value={email}
@@ -134,56 +131,18 @@ export default function RegisterScreen() {
                             keyboardType="email-address"
                         />
 
-                        <View style={styles.field}>
-                            <View style={styles.labelRow}>
-                                <ThemedText style={styles.label}>Password</ThemedText>
-                                {password.length > 0 ? (
-                                    <Ionicons
-                                        name={
-                                            passwordValid
-                                                ? "checkmark-circle"
-                                                : "alert-circle"
-                                        }
-                                        size={14}
-                                        color={
-                                            passwordValid
-                                                ? "#22C55E"
-                                                : "#EAB308"
-                                        }
-                                    />
-                                ) : null}
-                            </View>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons
-                                    name="key"
-                                    size={18}
-                                    color={TEXT_MUTED}
-                                />
-                                <TextInput
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    placeholder="••••••••"
-                                    placeholderTextColor={TEXT_DIM}
-                                    secureTextEntry={!showPw}
-                                    style={styles.input}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                />
-                                <TouchableOpacity
-                                    onPress={() => setShowPw((s) => !s)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons
-                                        name={showPw ? "eye-off" : "eye"}
-                                        size={18}
-                                        color={TEXT_MUTED}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                            <ThemedText style={styles.hint}>
-                                Almeno 8 caratteri e una cifra
-                            </ThemedText>
-                        </View>
+                        <FormField
+                            label="Password"
+                            icon="key"
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="••••••••"
+                            secure
+                            valid={passwordValid}
+                            hint="Almeno 8 caratteri e una cifra"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
 
                         {error ? (
                             <View style={styles.errorBox}>
@@ -242,45 +201,6 @@ export default function RegisterScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </LinearGradient>
-    );
-}
-
-function ValidatedField({
-    label,
-    icon,
-    value,
-    onChangeText,
-    placeholder,
-    valid,
-    hint,
-    ...rest
-}: any) {
-    const showCheck = value.length > 0;
-    return (
-        <View style={styles.field}>
-            <View style={styles.labelRow}>
-                <ThemedText style={styles.label}>{label}</ThemedText>
-                {showCheck ? (
-                    <Ionicons
-                        name={valid ? "checkmark-circle" : "alert-circle"}
-                        size={14}
-                        color={valid ? "#22C55E" : "#EAB308"}
-                    />
-                ) : null}
-            </View>
-            <View style={styles.inputWrapper}>
-                <Ionicons name={icon} size={18} color={TEXT_MUTED} />
-                <TextInput
-                    value={value}
-                    onChangeText={onChangeText}
-                    placeholder={placeholder}
-                    placeholderTextColor={TEXT_DIM}
-                    style={styles.input}
-                    {...rest}
-                />
-            </View>
-            {hint ? <ThemedText style={styles.hint}>{hint}</ThemedText> : null}
-        </View>
+        </Screen>
     );
 }

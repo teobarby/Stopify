@@ -20,20 +20,12 @@ Sistema per la raccolta e consultazione di **lyrics musicali** (testi piani e si
 8. [Sicurezza](#8-sicurezza)
 9. [Setup e avvio](#9-setup-e-avvio)
 10. [Struttura del repository](#10-struttura-del-repository)
-11. [Test](#11-test)
-12. [Conclusioni e sviluppi futuri](#12-conclusioni-e-sviluppi-futuri)
 
 ---
 
 ## 1. Obiettivi del progetto
 
 Stopify nasce con l'obiettivo di implementare un sistema distribuito client-server per la gestione di lyrics musicali, che rispetti la specifica open-source **LRCLIB**. Il progetto copre in modo integrato i temi centrali del corso:
-
-- **Architettura a strati** (*Routes → Services → Models*) per separare le responsabilità e facilitare la manutenibilità del codice
-- **Comunicazione client-server** tramite API REST in JSON su HTTP
-- **Sicurezza applicativa**: autenticazione con JWT (access token), hashing delle password con PBKDF2-SHA256 e meccanismo anti-spam Proof of Work
-- **Persistenza dei dati** con un database relazionale gestito tramite ORM (SQLAlchemy + SQLite)
-- **Client mobile multipiattaforma** in React Native / Expo (iOS, Android, Web)
 
 ---
 
@@ -46,7 +38,8 @@ Il sistema è composto da due componenti principali:
 
 ### Requisiti funzionali
 
-Il backend implementa l'intera specifica LRCLIB richiesta dalla traccia del progetto:
+Il backend implementa l'intera specifica LRCLIB richiesta dalla traccia del progetto,
+oltre a ulteriori API per la gestione degli accessi e del ruolo admin:
 
 | # | Funzionalità | Endpoint | Metodo |
 |---|---|---|---|
@@ -64,10 +57,9 @@ Il backend implementa l'intera specifica LRCLIB richiesta dalla traccia del prog
 
 ### Requisiti non funzionali
 
-- **Scalabilità**: architettura stateless, pronta per la migrazione da SQLite a PostgreSQL
-- **Sicurezza**: password hashed, JWT firmati con scadenza, PoW one-shot per le pubblicazioni anonime
-- **Usabilità**: app mobile con routing file-based, gradienti e blur per un'interfaccia moderna
-- **Portabilità**: backend eseguibile su qualsiasi sistema con Python ≥ 3.10; app testabile su simulatore o device fisico
+- **Sicurezza**: password hashed, JWT firmati con scadenza, PoW per le pubblicazioni anonime
+- **Usabilità**: app mobile per ios o android, con gradienti e blur per un'interfaccia moderna
+- **Portabilità**: backend eseguibile su qualsiasi sistema con Python ≥ 3.10; app testabile su simulatore o device fisico tramite expo go
 
 ---
 
@@ -81,9 +73,7 @@ Il backend implementa l'intera specifica LRCLIB richiesta dalla traccia del prog
 | ORM | Flask-SQLAlchemy | 3.1 | Astrazione sul DB, query parametrizzate (sicurezza SQL injection) |
 | Database | SQLite | embedded | Semplice da deployare senza server separato; adatto al prototipo |
 | Autenticazione | Flask-JWT-Extended | 4.7 | Gestione nativa di access token JWT con HS256 |
-| CORS | Flask-CORS | 6.0 | Necessario per le chiamate cross-origin dall'app mobile |
 | Hashing password | werkzeug.security | — | PBKDF2-SHA256 con salt randomico, già incluso nell'ecosistema Flask |
-| Migrazioni DB | script idempotente (`migrate.py`) | — | Aggiornamento dello schema senza perdita di dati |
 
 ### App Mobile
 
@@ -92,9 +82,6 @@ Il backend implementa l'intera specifica LRCLIB richiesta dalla traccia del prog
 | Framework UI | React Native | 0.81 | Unica codebase per iOS, Android e Web |
 | Runtime | Expo SDK | 54 | Semplifica build, aggiornamenti OTA e accesso alle API native |
 | Routing | expo-router | 6 | File-based routing, struttura chiara e manutenibile |
-| Sicurezza token | expo-secure-store | — | Persiste JWT su Keychain (iOS) e Keystore (Android) |
-| UI avanzata | expo-linear-gradient, expo-blur | — | Effetti visivi moderni senza dipendenze native custom |
-| Linguaggio | TypeScript | — | Type safety end-to-end, riduce errori a runtime |
 
 ---
 
@@ -128,8 +115,6 @@ app/
 └── utils/       ← Helper trasversali: encoder LRC, funzioni di sicurezza
 ```
 
-**Motivazione:** questa separazione permette di testare la logica di business senza montare una request Flask, e isola i dettagli di trasporto (HTTP, JSON) dal dominio applicativo (gestione delle lyrics, autenticazione, PoW).
-
 ### Flusso di una richiesta tipica
 
 ```
@@ -156,56 +141,45 @@ Client HTTP
 ## 5. Schema del database
 
 ```
-┌────────────┐       ┌────────────┐       ┌────────────┐
-│   users    │       │  artists   │       │   albums   │
-├────────────┤       ├────────────┤       ├────────────┤
-│ id PK      │       │ id PK      │       │ id PK      │
-│ username   │       │ name       │       │ title      │
-│ email      │       └─────┬──────┘       │ artist_id ─┼──┐
-│ password_  │             │              └────────────┘  │
-│   hash     │             │                              │
-└─────┬──────┘             │                              │
-      │                    │           ┌──────────────────┘
-      │ user_id            │ artist_id │ album_id
-      │      (nullable)    │           │ (nullable)
-      │                    ▼           ▼
-      │              ┌──────────────────────┐
-      └─────────────►│        songs         │
-                     ├──────────────────────┤
-                     │ id PK                │
-                     │ title                │
-                     │ artist_id FK         │
-                     │ album_id FK (nullable)│
-                     │ user_id FK (nullable) │
-                     │ lyrics               │
-                     │ synced_lyrics (JSON) │
-                     │ duration             │
-                     │ instrumental         │
-                     │ created_at           │
-                     └──────────────────────┘
-
 ┌──────────────────────┐
-│   pow_challenges     │
+│        users         │
 ├──────────────────────┤
 │ id PK                │
-│ token (prefix)       │
-│ difficulty           │
-│ used (bool)          │
+│ username             │
+│ email                │
+│ password_hash        │
+│ is_admin             │
+│ created_at           │
+└──────────┬───────────┘
+           │ user_id (nullable)
+           ▼
+┌──────────────────────┐
+│        songs         │
+├──────────────────────┤
+│ id PK                │
+│ title                │
+│ artist_name          │
+│ album_name (nullable)│
+│ user_id FK (nullable)│
+│ lyrics               │
+│ synced_lyrics (JSON) │
+│ duration             │
+│ instrumental         │
 │ created_at           │
 └──────────────────────┘
 ```
 
 **Scelte progettuali:**
 
-- `Song.user_id` è nullable per supportare il modello ibrido: valorizzato per brani pubblicati da utenti autenticati, `NULL` per brani anonimi (via PoW) o di seed.
+- `Song.user_id` è nullable per supportare il modello ibrido: valorizzato per brani pubblicati da utenti autenticati, `NULL` per brani anonimi (via PoW).
+- `artist_name` e `album_name` sono memorizzati direttamente sulla tabella `songs` (modello piatto, coerente con la specifica LRCLIB) anziché in tabelle `artists`/`albums` separate: il sistema non prevede pagine artista/album né metadati dedicati, quindi la normalizzazione non porterebbe alcun vantaggio funzionale.
 - `synced_lyrics` è memorizzato come stringa JSON (`[{"time": 12.5, "line": "..."}]`). La conversione bidirezionale con il formato LRC standard (`[mm:ss.xx] testo`) è gestita da `app/utils/lrc.py`, disaccoppiando il formato di storage da quello di trasporto.
-- La tabella `pow_challenges` tiene traccia dei token usati per garantire il vincolo one-shot senza bisogno di un sistema di cache esterno.
 
 ---
 
 ## 6. API REST
 
-Tutte le risposte sono JSON con codifica UTF-8. Gli errori restituiscono un oggetto JSON con il campo `message`:
+Tutte le risposte sono JSON. Gli errori restituiscono un oggetto JSON con il campo `message`:
 
 ```json
 { "message": "Lyrics non trovate" }
@@ -264,7 +238,7 @@ curl "http://localhost:5000/api/search?q=midnight"
 
 #### `POST /api/request-challenge` — Challenge PoW
 
-Emette una nuova challenge one-shot.
+Emette una nuova challenge.
 
 **Risposta 200:**
 ```json
@@ -333,7 +307,7 @@ La pubblicazione di lyrics supporta due flussi distinti, permettendo sia utenti 
 | Parametro | Valore |
 |---|---|
 | Algoritmo | HS256 |
-| Access token | durata 30 minuti |
+| Access token | durata 7 giorni |
 | Identity claim | `user.id` (stringa) |
 | Trasporto | Header `Authorization: Bearer <token>` |
 
@@ -352,7 +326,7 @@ Il PoW è il meccanismo scelto dalla specifica LRCLIB per **rallentare lo spam d
    ```
    La ricerca avviene per tentativi incrementali (`nonce = 0, 1, 2, …`).
 3. Il client invia `prefix:nonce` nell'header `X-Publish-Token` del `POST /api/publish`.
-4. Il server verifica la disuguaglianza, marca il prefix come `used = True` (vincolo one-shot) e accetta la pubblicazione.
+4. Il server verifica la disuguaglianza e accetta la pubblicazione. La verifica è **stateless**: nessuna challenge viene persistita sul database.
 
 **Parametri di difficoltà:** `POW_DIFFICULTY = 4` → target con 4 zeri esadecimali iniziali ≈ ~65.000 tentativi medi, ~0,5 s su un device mobile moderno. Il valore è configurabile in `app/config.py`.
 
@@ -364,38 +338,16 @@ Il PoW è il meccanismo scelto dalla specifica LRCLIB per **rallentare lo spam d
 
 ### Misure implementate
 
-| Misura | Descrizione | Standard di riferimento |
-|---|---|---|
-| Hash password | PBKDF2-SHA256 con salt randomico per ogni record (`werkzeug.security`) | OWASP Password Storage |
-| JWT firmati | HS256, scadenza 30 min (access token) | RFC 7519 |
-| Risposta unificata | Login fallito → messaggio `"Credenziali non valide"` indipendentemente dalla causa (user non esiste / password errata), per prevenire user enumeration | OWASP |
-| Validazione input | Regex lato server su username, email e password | — |
-| PoW one-shot | Ogni challenge token è valido una sola volta; riuso → rifiuto | Specifica LRCLIB |
-| ORM con bound parameters | Tutte le query passano per SQLAlchemy, eliminando SQL injection | OWASP SQL Injection |
-| CORS configurato | Intestazioni CORS abilitate (restrizione degli origini da applicare in produzione) | — |
-| Error handler globali | 404 / 405 / 500 restituiscono JSON strutturato senza stack trace | — |
-
-### Considerazioni per un deployment in produzione
-
-| Aspetto | Stato attuale (sviluppo) | Da fare in produzione |
-|---|---|---|
-| HTTPS / TLS | HTTP plain, `debug=True` | nginx / Caddy davanti a Flask con certificato TLS |
-| `JWT_SECRET_KEY` | Fallback hard-coded in `config.py` | Obbligatoria via env; abortire l'avvio se mancante |
-| Rate limiting | Non implementato | `Flask-Limiter` su `/auth/login` (5 req/min/IP) e `/auth/register` |
-| Logging autenticazione | stdout | Log file rotato con `python-json-logger`, alert su soglia |
-| Backup DB | Manuale | Snapshot LiteFS / cron rsync notturno |
-| GDPR | `GET /auth/me` per leggere i dati | Aggiungere `DELETE /auth/me` per cancellazione account |
-
-### Modello di minaccia
-
-| Minaccia | Mitigazione implementata |
-|---|---|
-| Credential stuffing | Hash password lento (PBKDF2), rate limit (deferred) |
-| User enumeration | Risposta uniforme su credenziali invalide |
-| Token replay | Scadenza access token 30 min; logout revoca il token lato client |
-| Spam di pubblicazioni | PoW per anonimi; attribuzione + possibilità di ban per autenticati |
-| SQL injection | SQLAlchemy ORM con query parametrizzate |
-| XSS / CSRF | API stateless con JWT in header (non in cookie) → CSRF non applicabile |
+| Misura                   | Descrizione                                                                                                                                                |
+|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Hash password            | PBKDF2-SHA256 con salt randomico per ogni record (`werkzeug.security`)                                                                                     |
+| JWT firmati              | HS256, scadenza 7 giorni (access token)                                                                                                                    | RFC 7519 |
+| Risposta unificata       | Login fallito → messaggio `"Credenziali non valide"` indipendentemente dalla causa (user non esiste / password errata), per prevenire user enumeration     |
+| Validazione input        | Regex lato server su username, email e password                                                                                                            | — |
+| Proof of Work            | Verifica stateless `SHA-256(prefix+nonce) ≤ target` prima di ogni pubblicazione anonima: impone un costo computazionale che rallenta lo spam automatizzato |
+| ORM con bound parameters | Tutte le query passano per SQLAlchemy, eliminando SQL injection                                                                                            |
+| CORS configurato         | Intestazioni CORS abilitate (restrizione degli origini da applicare in produzione)                                                                         |
+| Error handler globali    | 404 / 405 / 500 restituiscono JSON strutturato senza stack trace                                                                                           |
 
 ---
 
@@ -428,9 +380,8 @@ Il server è disponibile su `http://0.0.0.0:5000`. Al primo avvio, se il DB è v
 **Variabili d'ambiente (opzionali in sviluppo, obbligatorie in produzione):**
 
 ```bash
-export DATABASE_URL="sqlite:////path/assoluto/al/db.sqlite"  # default: lyrics.db nella cwd
+export DATABASE_URI="sqlite:////path/assoluto/al/db.sqlite"  # default: lyrics.db nella cartella Backend
 export JWT_SECRET_KEY="chiave-sicura-da-configurare"         # default insicuro: 'super-secret-key'
-export SECRET_KEY="chiave-sicura-da-configurare"             # default insicuro: 'change-me-in-production'
 ```
 
 ### App Mobile
@@ -455,92 +406,68 @@ npx expo start
 
 ---
 
-## 10. Struttura del repository
+## 10. Struttura del progetto
 
 ```
 Stopify/
 ├── Backend/
 │   ├── app/
-│   │   ├── __init__.py          # App factory + error handlers globali
+│   │   ├── __init__.py          # App factory + error handler globali (incl. AppError)
 │   │   ├── config.py            # Config (env-aware, con fallback per sviluppo)
 │   │   ├── extensions.py        # db, jwt, cors — istanze singleton
 │   │   ├── errors.py            # AppError — eccezione di dominio unificata
 │   │   ├── models/
-│   │   │   ├── lyrics.py        # Artist, Album, Song
-│   │   │   ├── user.py          # User
-│   │   │   └── challenge.py     # PowChallenge
+│   │   │   ├── lyrics.py        # Song
+│   │   │   └── user.py          # User
 │   │   ├── routes/
 │   │   │   ├── lrclib_routes.py # /api/* (LRCLIB + estensioni app)
 │   │   │   ├── auth_routes.py   # /auth/*
 │   │   │   ├── admin_routes.py  # /admin/*
 │   │   │   └── _helpers.py      # make_error — helper HTTP condiviso
 │   │   ├── services/
-│   │   │   ├── lyrics_service.py
-│   │   │   ├── auth_service.py
+│   │   │   ├── lyrics_service.py  # Ricerca, pubblicazione, CRUD brani
+│   │   │   ├── auth_service.py    # Registrazione, login, validazione
 │   │   │   └── crypto_service.py  # Generazione/verifica PoW, parse token
 │   │   └── utils/
 │   │       └── lrc.py           # Encoder/decoder LRC ↔ JSON
 │   ├── main.py                  # Entrypoint + seed catalogo
-│   ├── migrate.py               # Migrazione idempotente dello schema
 │   ├── lyrics.db                # SQLite (da escludere con .gitignore in produzione)
 │   └── requirements.txt
 │
 ├── MobileApp/
 │   ├── app/                     # Schermate (expo-router, file-based routing)
-│   │   ├── _layout.tsx          # Root layout con AuthProvider
+│   │   ├── _layout.tsx          # Root layout: AuthProvider + navigatore + animazioni
 │   │   ├── index.tsx            # Home
 │   │   ├── login.tsx            # Login
 │   │   ├── register.tsx         # Registrazione
 │   │   ├── search.tsx           # Ricerca nel catalogo
 │   │   ├── explore.tsx          # Catalogo paginato
-│   │   ├── publish.tsx          # Pubblicazione (JWT o PoW)
+│   │   ├── publish.tsx          # Pubblicazione (JWT o PoW) + check anti-duplicato
 │   │   ├── my-lyrics.tsx        # Brani pubblicati dall'utente autenticato
 │   │   ├── admin.tsx            # Pannello admin (solo is_admin=true)
 │   │   ├── song/[id].tsx        # Dettaglio brano + lyrics sincronizzate
-│   │   └── edit-song/[id].tsx   # Modifica un proprio brano
+│   │   └── edit-song/[id].tsx   # Modifica di un proprio brano
 │   ├── src/
-│   │   ├── api.ts               # Client REST verso il backend
+│   │   ├── api.ts               # Client REST verso il backend + solver PoW
 │   │   ├── AuthContext.tsx      # Stato di autenticazione globale (React Context)
 │   │   ├── storage.ts           # Wrapper SecureStore con fallback su localStorage (web)
 │   │   ├── dialog.ts            # Wrapper cross-platform per Alert e conferme
+│   │   ├── lyrics.ts            # Helper parsing/validazione testi (plain ↔ LRC)
 │   │   └── sha256.ts            # SHA-256 client-side per il calcolo del nonce PoW
+│   ├── components/
+│   │   ├── screen.tsx           # Contenitore schermata (gradiente + fix layout web)
+│   │   ├── form-field.tsx       # Campo input riutilizzabile (testo/password/validazione/textarea)
+│   │   └── themed-text.tsx      # Testo con colori derivati dal tema
 │   ├── constants/
-│   │   └── theme.ts             # Colori condivisi (PRIMARY, BG_GRADIENT, TEXT_MUTED, …)
-│   ├── styles/                  # StyleSheet dedicati per ogni schermata
-│   ├── components/              # ThemedText, ThemedView, ...
+│   │   └── theme.ts             # Colori condivisi (PRIMARY, BG_GRADIENT, TEXT_*, …)
 │   ├── hooks/
-│   ├── assets/
+│   │   ├── use-color-scheme.ts
+│   │   ├── use-color-scheme.web.ts
+│   │   └── use-theme-color.ts
+│   ├── styles/                  # StyleSheet dedicati per ogni schermata
+│   ├── app.json                 # Config Expo (incl. extra.apiBaseUrl)
 │   └── package.json
 │
 └── docs/
     └── README.md                # Questo documento
 ```
-
----
-
-## 11. Test
-
-Il backend può essere verificato manualmente tramite `curl` o strumenti come Postman/Insomnia, usando gli endpoint documentati nella sezione §6. Per un test rapido dell'health-check:
-
-```bash
-curl http://localhost:5000/api/health
-```
-
----
-
-## 12. Conclusioni e sviluppi futuri
-
-Il progetto Stopify ha raggiunto tutti gli obiettivi fissati dalla traccia del corso: l'implementazione completa della specifica LRCLIB, l'autenticazione JWT, il meccanismo Proof of Work per le pubblicazioni anonime e un'app mobile funzionante su iOS, Android e Web da una singola codebase TypeScript.
-
-Le scelte architetturali (separazione Routes/Services/Models, ORM SQLAlchemy, JWT stateless, PoW one-shot) riflettono i principi di progettazione sicura e manutenibile discussi nel corso.
-
-### Sviluppi futuri
-
-- **Rate limiting** con Flask-Limiter (5 req/min/IP su `/auth/login`)
-- **HTTPS in produzione** tramite nginx / Caddy con certificato TLS
-- **Logging strutturato** con `python-json-logger` e rotazione su file
-- **`DELETE /auth/me`** per cancellazione account (GDPR art. 17)
-- **OpenAPI / Swagger** auto-generato dalla specifica degli endpoint
-- **CI/CD** con GitHub Actions: lint, type-check, smoke test su ogni PR
-- **Migrazione a PostgreSQL** per il deploy in produzione multi-utente
-- **Pulizia periodica** della tabella `pow_challenges` (rimozione dei token usati o scaduti)

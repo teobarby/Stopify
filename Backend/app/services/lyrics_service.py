@@ -1,34 +1,30 @@
 from app.errors import AppError
 from app.extensions import db
-from app.models.lyrics import Artist, Album, Song
+from app.models.lyrics import Song
 from app.services.crypto_service import difficulty_to_target, verify_pow
 from app.utils.lrc import lrc_to_json
 
 def search_songs(q: str = "", title: str = "", artist: str = "", album: str = ""):
-    query = (
-        Song.query
-        .join(Artist, Song.artist_id == Artist.id)
-        .outerjoin(Album, Song.album_id == Album.id)
-    )
+    query = Song.query
     if q:
         pattern = f"%{q}%"
-        query = query.filter(db.or_(Song.title.ilike(pattern), Artist.name.ilike(pattern)))
+        query = query.filter(db.or_(Song.title.ilike(pattern), Song.artist_name.ilike(pattern)))
     if title:
         query = query.filter(Song.title.ilike(f"%{title}%"))
     if artist:
-        query = query.filter(Artist.name.ilike(f"%{artist}%"))
+        query = query.filter(Song.artist_name.ilike(f"%{artist}%"))
     if album:
-        query = query.filter(Album.title.ilike(f"%{album}%"))
+        query = query.filter(Song.album_name.ilike(f"%{album}%"))
     return query.order_by(Song.title).limit(50).all()
 
 
 def explore_songs(page: int = 1, limit: int = 20, sort: str = "recent"):
     limit = min(limit, 50)
-    query = Song.query.join(Artist, Song.artist_id == Artist.id)
+    query = Song.query
     if sort == "title":
         query = query.order_by(Song.title)
     elif sort == "artist":
-        query = query.order_by(Artist.name)
+        query = query.order_by(Song.artist_name)
     else:
         query = query.order_by(Song.created_at.desc())
     return query.paginate(page=page, per_page=limit, error_out=False)
@@ -44,14 +40,12 @@ def get_by_signature(
     if not track_name or not artist_name:
         return None
 
-    q = (
-        Song.query
-        .join(Artist, Song.artist_id == Artist.id)
-        .outerjoin(Album, Song.album_id == Album.id)
-        .filter(Song.title.ilike(track_name.strip()), Artist.name.ilike(artist_name.strip()))
+    q = Song.query.filter(
+        Song.title.ilike(track_name.strip()),
+        Song.artist_name.ilike(artist_name.strip()),
     )
     if album_name:
-        q = q.filter(Album.title.ilike(album_name.strip()))
+        q = q.filter(Song.album_name.ilike(album_name.strip()))
 
     candidates = q.all()
     if not candidates:
@@ -92,24 +86,6 @@ def _parse_song_payload(payload: dict) -> dict:
     }
 
 
-def _resolve_artist_album(artist_name: str, album_name: str | None):
-    artist = Artist.query.filter(Artist.name.ilike(artist_name)).first()
-    if not artist:
-        artist = Artist(name=artist_name)
-        db.session.add(artist)
-        db.session.flush()
-
-    album = None
-    if album_name:
-        album = Album.query.filter(Album.title.ilike(album_name), Album.artist_id == artist.id).first()
-        if not album:
-            album = Album(title=album_name, artist_id=artist.id)
-            db.session.add(album)
-            db.session.flush()
-
-    return artist, album
-
-
 def publish_song_lrclib(
     payload: dict,
     prefix: str | None = None,
@@ -126,11 +102,10 @@ def publish_song_lrclib(
         if not verify_pow(prefix, nonce, target):
             raise AppError("Proof of Work non superata", 403)
 
-    artist, album = _resolve_artist_album(fields["artist_name"], fields["album_name"])
     song = Song(
         title=fields["title"],
-        artist_id=artist.id,
-        album_id=album.id if album else None,
+        artist_name=fields["artist_name"],
+        album_name=fields["album_name"],
         lyrics=fields["lyrics"],
         synced_lyrics=fields["synced_json"],
         duration=fields["duration"],
@@ -154,11 +129,10 @@ def update_song(song_id: int, payload: dict, user_id: int, is_admin: bool = Fals
             raise AppError("Non sei l'autore di questo brano", 403)
 
     fields = _parse_song_payload(payload)
-    artist, album = _resolve_artist_album(fields["artist_name"], fields["album_name"])
 
     song.title = fields["title"]
-    song.artist_id = artist.id
-    song.album_id = album.id if album else None
+    song.artist_name = fields["artist_name"]
+    song.album_name = fields["album_name"]
     song.lyrics = fields["lyrics"]
     song.synced_lyrics = fields["synced_json"]
     song.duration = fields["duration"]
@@ -184,14 +158,10 @@ def delete_song(song_id: int, user_id: int, is_admin: bool = False) -> None:
 
 
 def list_all_songs(q: str = "", only_anonymous: bool = False, user_id: int | None = None):
-    query = (
-        Song.query
-        .join(Artist, Song.artist_id == Artist.id)
-        .outerjoin(Album, Song.album_id == Album.id)
-    )
+    query = Song.query
     if q:
         pattern = f"%{q}%"
-        query = query.filter(db.or_(Song.title.ilike(pattern), Artist.name.ilike(pattern)))
+        query = query.filter(db.or_(Song.title.ilike(pattern), Song.artist_name.ilike(pattern)))
     if only_anonymous:
         query = query.filter(Song.user_id.is_(None))
     elif user_id is not None:

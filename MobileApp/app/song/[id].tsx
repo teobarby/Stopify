@@ -15,7 +15,6 @@ import {
     ActivityIndicator,
     Animated,
     Easing,
-
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -23,8 +22,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
 import { api, LrclibSong, SyncedLine } from "../../src/api";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_SOFT } from "@/constants/theme";
 import styles from '@/styles/song.styles';
 
 type TabMode = "plain" | "synced";
@@ -232,10 +232,7 @@ export default function SongDetailScreen() {
             : 0;
 
     return (
-        <LinearGradient
-            colors={BG_GRADIENT}
-            style={styles.container}
-        >
+        <Screen style={styles.container}>
             {/* Ambient glows */}
             <View
                 style={[styles.glow, { backgroundColor: `${artGradient[0]}33` }]}
@@ -281,6 +278,7 @@ export default function SongDetailScreen() {
             >
                 <ScrollView
                     ref={scrollRef}
+                    style={{ flex: 1 }}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.scrollContent}
                     scrollEventThrottle={16}
@@ -550,7 +548,7 @@ export default function SongDetailScreen() {
                     </BlurView>
                 ) : null}
             </Animated.View>
-        </LinearGradient>
+        </Screen>
     );
 }
 

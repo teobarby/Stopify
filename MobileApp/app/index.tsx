@@ -4,22 +4,22 @@ import {
   TouchableOpacity,
   StatusBar,
   Animated,
-  Dimensions,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
 import { api } from "../src/api";
 import { useAuth } from "../src/AuthContext";
 import { showConfirm } from "../src/dialog";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, BG_MID, TEXT_MUTED, TEXT_SOFT } from "@/constants/theme";
+import { PRIMARY, PRIMARY_DEEP, TEXT_MUTED } from "@/constants/theme";
 import styles from '@/styles/index.styles';
 
 export default function HomeScreen() {
-  const router = useRouter();
   const { user, logout, loading: authLoading } = useAuth();
   const [online, setOnline] = useState<boolean | null>(null);
 
@@ -69,10 +69,7 @@ export default function HomeScreen() {
 
   return (
 
-      <LinearGradient
-          colors={BG_GRADIENT}
-          style={styles.container}
-      >
+      <Screen style={styles.container}>
         <StatusBar barStyle="light-content" />
 
         <View style={styles.glowOne} />
@@ -112,6 +109,7 @@ export default function HomeScreen() {
           )}
         </View>
 
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
         <Animated.View
             style={[
               styles.content,
@@ -254,6 +252,7 @@ export default function HomeScreen() {
             </ThemedText>
           </View>
         </Animated.View>
-      </LinearGradient>
+        </ScrollView>
+      </Screen>
   );
 }

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-    TextInput,
     TouchableOpacity,
     View,
     KeyboardAvoidingView,
@@ -15,8 +14,10 @@ import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
+import { FormField } from "@/components/form-field";
 import { useAuth } from "../src/AuthContext";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import { PRIMARY, PRIMARY_DEEP } from "@/constants/theme";
 import styles from '@/styles/login.styles';
 
 export default function LoginScreen() {
@@ -27,7 +28,6 @@ export default function LoginScreen() {
     const [password, setPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [showPw, setShowPw] = useState(false);
 
     const handleSubmit = async () => {
         setError(null);
@@ -49,10 +49,7 @@ export default function LoginScreen() {
     };
 
     return (
-        <LinearGradient
-            colors={BG_GRADIENT}
-            style={styles.container}
-        >
+        <Screen style={styles.container}>
             <View style={styles.glowOne} />
             <View style={styles.glowTwo} />
 
@@ -88,7 +85,7 @@ export default function LoginScreen() {
                     </View>
 
                     <BlurView intensity={30} tint="dark" style={styles.card}>
-                        <Field
+                        <FormField
                             label="Username o email"
                             icon="person"
                             value={identifier}
@@ -98,36 +95,16 @@ export default function LoginScreen() {
                             autoCorrect={false}
                         />
 
-                        <View style={styles.field}>
-                            <ThemedText style={styles.label}>Password</ThemedText>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons
-                                    name="key"
-                                    size={18}
-                                    color={TEXT_MUTED}
-                                />
-                                <TextInput
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    placeholder="••••••••"
-                                    placeholderTextColor={TEXT_DIM}
-                                    secureTextEntry={!showPw}
-                                    style={styles.input}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                />
-                                <TouchableOpacity
-                                    onPress={() => setShowPw((s) => !s)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons
-                                        name={showPw ? "eye-off" : "eye"}
-                                        size={18}
-                                        color={TEXT_MUTED}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+                        <FormField
+                            label="Password"
+                            icon="key"
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="••••••••"
+                            secure
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
 
                         {error ? (
                             <View style={styles.errorBox}>
@@ -186,32 +163,6 @@ export default function LoginScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </LinearGradient>
-    );
-}
-
-function Field({
-    label,
-    icon,
-    value,
-    onChangeText,
-    placeholder,
-    ...rest
-}: any) {
-    return (
-        <View style={styles.field}>
-            <ThemedText style={styles.label}>{label}</ThemedText>
-            <View style={styles.inputWrapper}>
-                <Ionicons name={icon} size={18} color={TEXT_MUTED} />
-                <TextInput
-                    value={value}
-                    onChangeText={onChangeText}
-                    placeholder={placeholder}
-                    placeholderTextColor={TEXT_DIM}
-                    style={styles.input}
-                    {...rest}
-                />
-            </View>
-        </View>
+        </Screen>
     );
 }

@@ -14,8 +14,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
 import { api, LrclibSong } from "../src/api";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import { PRIMARY, PRIMARY_DEEP, TEXT_MUTED, TEXT_SOFT } from "@/constants/theme";
 import styles from '@/styles/explore.styles';
 
 type SortMode = "recent" | "title" | "artist";
@@ -167,10 +168,7 @@ export default function ExploreScreen() {
   );
 
   return (
-      <LinearGradient
-          colors={BG_GRADIENT}
-          style={styles.container}
-      >
+      <Screen style={styles.container}>
         <View style={styles.glowOne} />
         <View style={styles.glowTwo} />
 
@@ -266,6 +264,7 @@ export default function ExploreScreen() {
         ) : null}
 
         <FlatList
+            style={{ flex: 1 }}
             data={songs}
             renderItem={renderItem}
             keyExtractor={(item) =>
@@ -328,6 +327,6 @@ export default function ExploreScreen() {
               )
             }
         />
-      </LinearGradient>
+      </Screen>
   );
 }

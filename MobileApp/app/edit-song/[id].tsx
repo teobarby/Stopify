@@ -11,7 +11,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -22,8 +21,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { Screen } from "@/components/screen";
+import { FormField } from "@/components/form-field";
 import { api, LrclibSong } from "../../src/api";
-import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT, TEXT_MUTED, TEXT_DIM, TEXT_SOFT } from "@/constants/theme";
+import { parseLyrics, validateSong } from "../../src/lyrics";
+import { PRIMARY, PRIMARY_DEEP, BG_GRADIENT } from "@/constants/theme";
 import styles from '@/styles/edit-song.styles';
 
 export default function EditSongScreen() {
@@ -42,8 +44,7 @@ export default function EditSongScreen() {
     const [artistName, setArtistName] = useState("");
     const [albumName, setAlbumName] = useState("");
     const [duration, setDuration] = useState("");
-    const [plainLyrics, setPlainLyrics] = useState("");
-    const [syncedLyrics, setSyncedLyrics] = useState("");
+    const [lyrics, setLyrics] = useState("");
 
     // ── Load current values ──────────────────────────────────────────────────
     useEffect(() => {
@@ -56,8 +57,7 @@ export default function EditSongScreen() {
                 setArtistName(s.artistName || "");
                 setAlbumName(s.albumName || "");
                 setDuration(s.duration ? String(s.duration) : "");
-                setPlainLyrics(s.plainLyrics || "");
-                setSyncedLyrics(s.syncedLyrics || "");
+                setLyrics(s.syncedLyrics || s.plainLyrics || "");
             } catch (e: any) {
                 setLoadError(e.message || "Brano non trovato");
             } finally {
@@ -66,22 +66,14 @@ export default function EditSongScreen() {
         })();
     }, [songId]);
 
-    const validate = (): string | null => {
-        if (!trackName.trim()) return "Inserisci il titolo.";
-        if (!artistName.trim()) return "Inserisci l'artista.";
-        if (!plainLyrics.trim()) return "Inserisci il testo.";
-        if (plainLyrics.trim().length < 20) return "Il testo è troppo breve.";
-        if (duration && isNaN(Number(duration)))
-            return "La durata deve essere numerica.";
-        return null;
-    };
-
     const handleSave = async () => {
-        const v = validate();
+        const v = validateSong({ title: trackName, artist: artistName, lyrics, duration });
         if (v) {
             setError(v);
             return;
         }
+
+        const { plainLyrics, syncedLyrics } = parseLyrics(lyrics);
 
         setSubmitting(true);
         setError(null);
@@ -91,8 +83,8 @@ export default function EditSongScreen() {
                 artistName: artistName.trim(),
                 albumName: albumName.trim() || undefined,
                 duration: duration ? Number(duration) : undefined,
-                plainLyrics: plainLyrics.trim(),
-                syncedLyrics: syncedLyrics.trim() || undefined,
+                plainLyrics,
+                syncedLyrics,
             });
             router.back();
         } catch (e: any) {
@@ -141,10 +133,7 @@ export default function EditSongScreen() {
     }
 
     return (
-        <LinearGradient
-            colors={BG_GRADIENT}
-            style={styles.container}
-        >
+        <Screen style={styles.container}>
             <View style={styles.glowOne} />
             <View style={styles.glowTwo} />
 
@@ -153,6 +142,7 @@ export default function EditSongScreen() {
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
                 <ScrollView
+                    style={{ flex: 1 }}
                     contentContainerStyle={styles.scroll}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
@@ -182,26 +172,26 @@ export default function EditSongScreen() {
 
                     {/* FORM */}
                     <BlurView intensity={30} tint="dark" style={styles.formCard}>
-                        <Field
+                        <FormField
                             label="Titolo"
                             icon="musical-note"
                             value={trackName}
                             onChangeText={setTrackName}
                         />
-                        <Field
+                        <FormField
                             label="Artista"
                             icon="person"
                             value={artistName}
                             onChangeText={setArtistName}
                         />
-                        <Field
+                        <FormField
                             label="Album"
                             icon="albums"
                             value={albumName}
                             onChangeText={setAlbumName}
                             placeholder="opzionale"
                         />
-                        <Field
+                        <FormField
                             label="Durata (secondi)"
                             icon="time"
                             value={duration}
@@ -210,52 +200,15 @@ export default function EditSongScreen() {
                             keyboardType="numeric"
                         />
 
-                        <View style={styles.field}>
-                            <ThemedText style={styles.label}>
-                                Testo
-                            </ThemedText>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons
-                                    name="document-text"
-                                    size={18}
-                                    color={TEXT_MUTED}
-                                />
-                                <TextInput
-                                    value={plainLyrics}
-                                    onChangeText={setPlainLyrics}
-                                    placeholder="Testo del brano…"
-                                    placeholderTextColor={TEXT_DIM}
-                                    multiline
-                                    textAlignVertical="top"
-                                    style={styles.textArea}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.field}>
-                            <ThemedText style={styles.label}>
-                                Testo sincronizzato (formato LRC)
-                            </ThemedText>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons
-                                    name="pulse"
-                                    size={18}
-                                    color={TEXT_MUTED}
-                                />
-                                <TextInput
-                                    value={syncedLyrics}
-                                    onChangeText={setSyncedLyrics}
-                                    placeholder={"[00:00.00] prima riga\n[00:04.50] seconda riga"}
-                                    placeholderTextColor={TEXT_DIM}
-                                    multiline
-                                    textAlignVertical="top"
-                                    style={styles.textAreaSmall}
-                                />
-                            </View>
-                            <ThemedText style={styles.hint}>
-                                Lascia vuoto se non hai timestamp.
-                            </ThemedText>
-                        </View>
+                        <FormField
+                            label="Testo"
+                            icon="document-text"
+                            value={lyrics}
+                            onChangeText={setLyrics}
+                            placeholder={"Testo semplice, oppure con timestamp LRC:\n[00:00.00] prima riga\n[00:04.50] seconda riga"}
+                            multiline
+                            hint="I timestamp [mm:ss.xx] vengono rilevati automaticamente."
+                        />
 
                         {error ? (
                             <View style={styles.errorBox}>
@@ -303,25 +256,6 @@ export default function EditSongScreen() {
                     </BlurView>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </LinearGradient>
-    );
-}
-
-function Field({ label, icon, value, onChangeText, placeholder, ...rest }: any) {
-    return (
-        <View style={styles.field}>
-            <ThemedText style={styles.label}>{label}</ThemedText>
-            <View style={styles.inputWrapper}>
-                <Ionicons name={icon} size={18} color={TEXT_MUTED} />
-                <TextInput
-                    value={value}
-                    onChangeText={onChangeText}
-                    placeholder={placeholder}
-                    placeholderTextColor={TEXT_DIM}
-                    style={styles.input}
-                    {...rest}
-                />
-            </View>
-        </View>
+        </Screen>
     );
 }

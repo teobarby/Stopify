@@ -77,7 +77,7 @@ Il routing è gestito da `expo-router`, che mappa automaticamente i file nella c
 
 ### Gestione del token scaduto
 
-Alla ricezione di un `401` da qualsiasi endpoint autenticato, `src/api.ts` svuota la sessione locale e reindirizza al login. Il token ha una durata di 30 minuti.
+Alla ricezione di un `401` da qualsiasi endpoint autenticato, `src/api.ts` svuota la sessione locale e reindirizza al login. Il token ha una durata di 7 giorni.
 
 ### Persistenza sicura dei token
 
