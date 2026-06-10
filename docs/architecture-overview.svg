@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="560" viewBox="0 0 760 560">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#37474f"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="760" height="560" fill="#ffffff"/>
+
+  <text x="380" y="48" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="bold" fill="#263238">Architettura del sistema — vista ad alto livello</text>
+
+  <!-- Mobile App -->
+  <rect x="50" y="130" width="240" height="110" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+  <text x="170" y="172" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="bold" fill="#0d47a1">Mobile App</text>
+  <text x="170" y="197" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">Expo / React Native</text>
+  <text x="170" y="216" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">iOS · Android · Web</text>
+
+  <!-- Arrow Mobile <-> Backend -->
+  <line x1="295" y1="185" x2="465" y2="185" stroke="#37474f" stroke-width="2.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="380" y="165" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#546e7a">HTTPS / HTTP</text>
+  <text x="380" y="207" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#546e7a">JSON over REST</text>
+
+  <!-- Flask Backend -->
+  <rect x="470" y="130" width="240" height="110" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+  <text x="590" y="172" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="bold" fill="#1b5e20">Flask Backend</text>
+  <text x="590" y="197" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">REST API (port 5000)</text>
+  <text x="590" y="216" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">Routes → Services → Models</text>
+
+  <!-- Arrow Backend <-> DB -->
+  <line x1="590" y1="245" x2="590" y2="385" stroke="#37474f" stroke-width="2.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="605" y="320" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#546e7a">SQLAlchemy ORM</text>
+
+  <!-- SQLite cylinder -->
+  <g>
+    <path d="M 510 410 a 80 18 0 0 0 160 0 v 70 a 80 18 0 0 1 -160 0 z" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="2"/>
+    <ellipse cx="590" cy="410" rx="80" ry="18" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="2"/>
+    <text x="590" y="455" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="16" font-weight="bold" fill="#4a148c">SQLite (file DB)</text>
+    <text x="590" y="478" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">lyrics.db</text>
+  </g>
+
+  <text x="380" y="535" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#90a4ae">Stopify — sistema distribuito client-server</text>
+</svg>

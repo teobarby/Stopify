@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="980" viewBox="0 0 760 980">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#37474f"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="760" height="980" fill="#ffffff"/>
+
+  <text x="380" y="48" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="bold" fill="#263238">Flusso di una richiesta HTTP</text>
+
+  <!-- Client (top) -->
+  <rect x="230" y="80" width="300" height="60" rx="30" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>
+  <text x="380" y="117" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="bold" fill="#263238">Client HTTP</text>
+
+  <!-- Arrow Client -> Route -->
+  <line x1="380" y1="140" x2="380" y2="190" stroke="#37474f" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="395" y="170" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#546e7a">richiesta</text>
+
+  <!-- Route (in) -->
+  <rect x="150" y="195" width="460" height="90" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+  <text x="380" y="228" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="bold" fill="#0d47a1">Route</text>
+  <text x="380" y="252" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">valida i parametri</text>
+  <text x="380" y="271" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">autentica JWT (se richiesto)</text>
+
+  <!-- Arrow Route -> Service -->
+  <line x1="380" y1="285" x2="380" y2="335" stroke="#37474f" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Service -->
+  <rect x="150" y="340" width="460" height="90" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+  <text x="380" y="373" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="bold" fill="#1b5e20">Service</text>
+  <text x="380" y="397" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">esegue la business logic</text>
+  <text x="380" y="416" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">interagisce con il DB</text>
+
+  <!-- Arrow Service -> Model -->
+  <line x1="380" y1="430" x2="380" y2="480" stroke="#37474f" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Model -->
+  <rect x="150" y="485" width="460" height="90" rx="10" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+  <text x="380" y="518" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="bold" fill="#bf360c">Model — SQLAlchemy</text>
+  <text x="380" y="542" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">query parametrizzate</text>
+  <text x="380" y="561" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">gestione transazioni</text>
+
+  <!-- Arrow Model -> Route (out) -->
+  <line x1="380" y1="575" x2="380" y2="625" stroke="#37474f" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Route (out) -->
+  <rect x="150" y="630" width="460" height="90" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+  <text x="380" y="663" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="bold" fill="#0d47a1">Route</text>
+  <text x="380" y="687" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">formatta la risposta JSON</text>
+  <text x="380" y="706" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#37474f">imposta lo status code</text>
+
+  <!-- Arrow Route -> Client (bottom) -->
+  <line x1="380" y1="720" x2="380" y2="770" stroke="#37474f" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="395" y="750" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#546e7a">risposta</text>
+
+  <!-- Client (bottom) -->
+  <rect x="230" y="775" width="300" height="60" rx="30" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>
+  <text x="380" y="812" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="bold" fill="#263238">Client HTTP</text>
+
+  <!-- Side bracket: Backend Flask -->
+  <path d="M 640 195 L 660 195 L 660 720 L 640 720" fill="none" stroke="#90a4ae" stroke-width="2"/>
+  <text x="685" y="465" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#546e7a" transform="rotate(90 685 465)" text-anchor="middle">Backend (Flask)</text>
+
+  <!-- DB cylinder next to Model -->
+  <g>
+    <path d="M 50 505 a 40 12 0 0 0 80 0 v 50 a 40 12 0 0 1 -80 0 z" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="2"/>
+    <ellipse cx="90" cy="505" rx="40" ry="12" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="2"/>
+    <text x="90" y="545" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="bold" fill="#4a148c">DB</text>
+  </g>
+  <line x1="133" y1="535" x2="147" y2="535" stroke="#37474f" stroke-width="2.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+
+  <text x="380" y="940" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="13" fill="#90a4ae">Stopify — architettura a livelli: Route → Service → Model</text>
+</svg>

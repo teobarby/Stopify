@@ -89,19 +89,9 @@ oltre a ulteriori API per la gestione degli accessi e del ruolo admin:
 
 ### Vista ad alto livello
 
-```
-┌────────────────────┐         HTTPS / HTTP          ┌────────────────────┐
-│   Mobile App       │◄─────────────────────────────►│   Flask Backend    │
-│   (Expo / RN)      │       JSON over REST          │   (port 5000)      │
-└────────────────────┘                               └─────────┬──────────┘
-                                                               │
-                                                          SQLAlchemy ORM
-                                                               │
-                                                     ┌─────────▼──────────┐
-                                                     │  SQLite (file DB)  │
-                                                     │   lyrics.db        │
-                                                     └────────────────────┘
-```
+![Architettura del sistema — vista ad alto livello](architecture-overview.svg)
+
+> 📐 Sorgente editabile: [`architecture-overview.svg`](architecture-overview.svg)
 
 ### Diagramma delle classi (modello di dominio)
 
@@ -125,24 +115,9 @@ app/
 
 ### Flusso di una richiesta tipica
 
-```
-Client HTTP
-    │
-    ▼
-[Route] ── valida i parametri, autentica JWT (se richiesto)
-    │
-    ▼
-[Service] ── esegue la business logic, interagisce con il DB
-    │
-    ▼
-[Model] ── SQLAlchemy: query parametrizzate, gestione transazioni
-    │
-    ▼
-[Route] ── formatta la risposta JSON, imposta lo status code
-    │
-    ▼
-Client HTTP
-```
+![Flusso di una richiesta HTTP](request-flow.svg)
+
+> 📐 Sorgente editabile: [`request-flow.svg`](request-flow.svg)
 
 ---
 
