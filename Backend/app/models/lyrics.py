@@ -5,7 +5,6 @@ from app.extensions import db
 
 class Song(db.Model):
     __tablename__ = "songs"
-l
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(300), nullable=False)
     artist_name = db.Column(db.String(200), nullable=False)
