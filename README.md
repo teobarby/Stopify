@@ -89,17 +89,17 @@ oltre a ulteriori API per la gestione degli accessi e del ruolo admin:
 
 ### Vista ad alto livello
 
-![Architettura del sistema — vista ad alto livello](images/architecture-overview.svg)
+![Architettura del sistema — vista ad alto livello](docs/images/architecture-overview.svg)
 
-> 📐 Sorgente editabile: [`architecture-overview.svg`](images/architecture-overview.svg)
+> Sorgente editabile: [`architecture-overview.svg`](docs/images/architecture-overview.svg)
 
 ### Diagramma delle classi (modello di dominio)
 
 Le entità principali del sistema e la loro associazione, in notazione UML:
 
-![Diagramma delle classi — UML](images/class-diagram.svg)
+![Diagramma delle classi — UML](docs/images/class-diagram.svg)
 
-> 📐 Sorgente editabile: [`class-diagram.svg`](images/class-diagram.svg) · [originale draw.io](images/class-diagram.drawio) · [versione PDF](images/class-diagram.pdf)
+> Sorgente editabile: [`class-diagram.svg`](docs/images/class-diagram.svg) · [originale draw.io](docs/images/class-diagram.drawio)
 
 ### Architettura a strati del backend
 
@@ -115,17 +115,17 @@ app/
 
 ### Flusso di una richiesta tipica
 
-![Flusso di una richiesta HTTP](images/request-flow.svg)
+![Flusso di una richiesta HTTP](docs/images/request-flow.svg)
 
-> 📐 Sorgente editabile: [`request-flow.svg`](images/request-flow.svg)
+> Sorgente editabile: [`request-flow.svg`](docs/images/request-flow.svg)
 
 ---
 
 ## 5. Schema del database
 
-![Schema ER — notazione Chen](images/db/ER.svg)
+![Schema ER — notazione Chen](docs/images/db/ER.svg)
 
-> 📊 Sorgente editabile: [`ER.svg`](images/db/ER.svg) · [originale draw.io](images/db/ER.drawio) · [versione PDF](images/db/ER.pdf)
+> Sorgente editabile: [`ER.svg`](docs/images/db/ER.svg) · [originale draw.io](docs/images/db/ER.drawio)
 
 **Scelte progettuali:**
 
