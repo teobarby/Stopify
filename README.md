@@ -19,7 +19,7 @@ Sistema per la raccolta e consultazione di **lyrics musicali** (testi piani e si
 7. [Autenticazione e Proof of Work](#7-autenticazione-e-proof-of-work)
 8. [Sicurezza](#8-sicurezza)
 9. [Setup e avvio](#9-setup-e-avvio)
-10. [Struttura del repository](#10-struttura-del-progetto)
+10. [Struttura del progetto](#10-struttura-del-progetto)
 
 ---
 
@@ -305,6 +305,7 @@ Il PoW è il meccanismo scelto dalla specifica LRCLIB per **rallentare lo spam d
 | Proof of Work            | Verifica stateless `SHA-256(prefix+nonce) ≤ target` prima di ogni pubblicazione anonima: impone un costo computazionale che rallenta lo spam automatizzato |
 | ORM con bound parameters | Tutte le query passano per SQLAlchemy, eliminando SQL injection                                                                                            |
 | CORS configurato         | Intestazioni CORS abilitate (restrizione degli origini da applicare in produzione)                                                                         |
+| Limite dimensione payload | `MAX_CONTENT_LENGTH = 256 KB` per richiesta: scarta payload abnormi prima di processarli                                                                   |
 | Error handler globali    | 404 / 405 / 500 restituiscono JSON strutturato senza stack trace                                                                                           |
 
 ---
@@ -333,13 +334,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Il server è disponibile su `http://0.0.0.0:5000`. Al primo avvio, se il DB è vuoto, viene popolato automaticamente con un catalogo di esempio di 4 brani originali (testi inventati per il progetto).
+Il server è disponibile su `http://0.0.0.0:5000`. Al primo avvio, se il DB è vuoto, viene popolato automaticamente con un catalogo di esempio di 4 brani originali (testi inventati per il progetto) e con un **account amministratore di default** (`admin` / `admin123`), utile per provare il pannello admin. Le credenziali sono configurabili via variabili d'ambiente e vanno sostituite in produzione.
 
 **Variabili d'ambiente (opzionali in sviluppo, obbligatorie in produzione):**
 
 ```bash
 export DATABASE_URI="sqlite:////path/assoluto/al/db.sqlite"  # default: lyrics.db nella cartella Backend
 export JWT_SECRET_KEY="chiave-sicura-da-configurare"         # default insicuro: 'super-secret-key'
+export ADMIN_USERNAME="admin"                                # default: 'admin'
+export ADMIN_EMAIL="admin@stopify.local"                     # default: 'admin@stopify.local'
+export ADMIN_PASSWORD="password-admin-sicura"                # default insicuro: 'admin123'
 ```
 
 ### App Mobile
@@ -368,6 +372,7 @@ npx expo start
 
 ```
 Stopify/
+├── README.md                    # Questo documento (relazione tecnica)
 ├── Backend/
 │   ├── app/
 │   │   ├── __init__.py          # App factory + error handler globali (incl. AppError)
@@ -427,5 +432,6 @@ Stopify/
 │   └── package.json
 │
 └── docs/
-    └── README.md                # Questo documento
+    ├── Stopify_Relazione.pdf    # Documento dei requisiti (PDF)
+    └── images/                  # Diagrammi (architettura, ER, class diagram, request-flow)
 ```

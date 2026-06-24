@@ -4,7 +4,7 @@ Componente client del progetto Stopify: applicazione mobile multipiattaforma (iO
 
 > **Corso:** Architettura, Reti e Sicurezza — A.A. 2025/2026
 > 
-> Per la documentazione completa del sistema vedere [`docs/README.md`](../docs/README.md).
+> Per la documentazione completa del sistema vedere [`README.md`](../README.md).
 
 ---
 
