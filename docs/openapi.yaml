@@ -1,0 +1,747 @@
+openapi: 3.0.3
+info:
+  title: Stopify API
+  version: 1.0.0
+  description: 'API REST del backend **Stopify**, compatibile con la specifica [LRCLIB](https://lrclib.net/docs).
+    Gestisce la consultazione e la pubblicazione di lyrics musicali (testi piani e sincronizzati), l''autenticazione
+    degli utenti e la moderazione admin.
+
+
+    **Autenticazione**: gli endpoint protetti usano un token JWT (`Authorization: Bearer <token>`). La
+    pubblicazione anonima usa invece l''header `X-Publish-Token: <prefix>:<nonce>` ottenuto risolvendo
+    una sfida Proof of Work.
+
+
+    **Errori**: gli errori gestiti dalle route restituiscono `{ "message": ... }`; gli errori globali
+    (404/405/500) usano `{ "error": ... }`.'
+  contact:
+    name: Stopify — Architettura, Reti e Sicurezza, A.A. 2025/2026
+servers:
+- url: http://localhost:5000
+  description: Server di sviluppo
+tags:
+- name: LRCLIB
+  description: Endpoint compatibili con la specifica LRCLIB
+- name: Proof of Work
+  description: Sfida crittografica per le pubblicazioni anonime
+- name: Autenticazione
+  description: Registrazione, login e profilo utente
+- name: Brani propri
+  description: Gestione dei brani dell'utente autenticato (richiede JWT)
+- name: Admin
+  description: Moderazione del catalogo (richiede JWT con is_admin)
+- name: Sistema
+  description: Health-check ed esplorazione del catalogo
+paths:
+  /api/get:
+    get:
+      tags:
+      - LRCLIB
+      summary: Lookup lyrics per signature
+      description: Cerca un brano per titolo e artista. La durata è opzionale, con tolleranza di ±2 secondi.
+      parameters:
+      - name: track_name
+        in: query
+        required: true
+        schema:
+          type: string
+        example: Midnight Drive
+      - name: artist_name
+        in: query
+        required: true
+        schema:
+          type: string
+        example: Solar Static
+      - name: album_name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: duration
+        in: query
+        required: false
+        schema:
+          type: number
+        description: Durata in secondi (tolleranza ±2s)
+      responses:
+        '200': &id001
+          description: Brano trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LrclibSong'
+        '400':
+          description: Parametri obbligatori mancanti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: track_name e artist_name sono obbligatori
+        '404':
+          description: Brano non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Lyrics non trovate
+  /api/get-cached:
+    get:
+      tags:
+      - LRCLIB
+      summary: Lookup lyrics (solo cache locale)
+      description: 'Identico a `/api/get`. Nella nostra implementazione i due endpoint coincidono perché
+        il database locale del server è la cache: non è previsto un fallback su sorgenti esterne.'
+      parameters:
+      - name: track_name
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: artist_name
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: album_name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: duration
+        in: query
+        required: false
+        schema:
+          type: number
+      responses:
+        '200': *id001
+        '400':
+          description: Parametri obbligatori mancanti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Brano non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/get/{id}:
+    get:
+      tags:
+      - LRCLIB
+      summary: Lookup lyrics per ID
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200': *id001
+        '404':
+          description: Brano non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Lyrics non trovate
+  /api/search:
+    get:
+      tags:
+      - LRCLIB
+      summary: Ricerca full-text nel catalogo
+      description: Richiede almeno uno tra `q`, `track_name`, `artist_name`, `album_name`. Ritorna fino
+        a 50 risultati.
+      parameters:
+      - name: q
+        in: query
+        schema:
+          type: string
+        description: Ricerca su titolo e artista
+        example: midnight
+      - name: track_name
+        in: query
+        schema:
+          type: string
+      - name: artist_name
+        in: query
+        schema:
+          type: string
+      - name: album_name
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Elenco brani (max 50)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LrclibSong'
+        '400':
+          description: Nessun parametro di ricerca fornito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: 'Fornisci almeno uno tra: q, track_name, artist_name, album_name'
+  /api/request-challenge:
+    post:
+      tags:
+      - Proof of Work
+      summary: Richiedi una challenge PoW
+      description: 'Emette una nuova sfida `{prefix, target}`. Il client deve trovare un `nonce` tale
+        che `SHA-256(prefix+nonce) <= target` e inviarlo come `X-Publish-Token: prefix:nonce`.'
+      responses:
+        '200':
+          description: Nuova challenge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+  /api/publish:
+    post:
+      tags:
+      - LRCLIB
+      summary: Pubblica nuove lyrics
+      description: 'Richiede **uno** tra:
+
+        - `Authorization: Bearer <jwt>` → pubblicazione attribuita all''utente (senza PoW);
+
+        - `X-Publish-Token: <prefix>:<nonce>` → pubblicazione anonima (PoW necessaria).'
+      security:
+      - bearerAuth: []
+      - powToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishBody'
+      responses:
+        '201':
+          description: Brano creato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LrclibSong'
+        '400':
+          description: Body JSON assente o non valido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Nessuna credenziale (né JWT né token PoW)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: 'Autenticazione richiesta: JWT o X-Publish-Token'
+        '403':
+          description: Proof of Work non superata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Campi obbligatori mancanti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: 'Campi mancanti: trackName, artistName'
+  /api/me/songs:
+    get:
+      tags:
+      - Brani propri
+      summary: Elenco dei brani pubblicati dall'utente
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Brani dell'utente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LrclibSong'
+        '401':
+          description: Token mancante o non valido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/songs/{id}:
+    put:
+      tags:
+      - Brani propri
+      summary: Modifica un proprio brano
+      description: L'utente può modificare solo i propri brani. Gli admin possono modificare qualsiasi
+        brano.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishBody'
+      responses:
+        '200':
+          description: Brano aggiornato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LrclibSong'
+        '401':
+          description: Token mancante o non valido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Non sei l'autore del brano (o brano anonimo)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Brano non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Campi obbligatori mancanti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Brani propri
+      summary: Cancella un proprio brano
+      description: L'utente può cancellare solo i propri brani. Gli admin possono cancellare qualsiasi
+        brano.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Brano cancellato
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: integer
+                    example: 42
+        '401':
+          description: Token mancante o non valido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Non sei l'autore del brano (o brano anonimo)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Brano non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/health:
+    get:
+      tags:
+      - Sistema
+      summary: Health-check del server
+      responses:
+        '200':
+          description: Server attivo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+  /api/explore:
+    get:
+      tags:
+      - Sistema
+      summary: Catalogo paginato
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          default: 1
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 20
+          maximum: 50
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - recent
+          - title
+          - artist
+          default: recent
+      responses:
+        '200':
+          description: Pagina di brani
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExploreResult'
+  /auth/register:
+    post:
+      tags:
+      - Autenticazione
+      summary: Registra un nuovo utente
+      description: 'Username: `^[A-Za-z0-9_]{3,30}$`. Email valida (normalizzata in lowercase). Password:
+        minimo 8 caratteri, almeno una cifra. Username ed email univoci (case-insensitive).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - username
+              - email
+              - password
+              properties:
+                username:
+                  type: string
+                  example: alice99
+                email:
+                  type: string
+                  example: alice@example.com
+                password:
+                  type: string
+                  format: password
+                  example: secret123
+      responses:
+        '201':
+          description: Utente creato + token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '409':
+          description: Username o email già in uso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Username già in uso
+        '422':
+          description: Validazione fallita
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: La password deve contenere almeno una cifra
+  /auth/login:
+    post:
+      tags:
+      - Autenticazione
+      summary: Login utente
+      description: Accetta username **o** email. In caso di credenziali errate restituisce sempre lo stesso
+        messaggio, per prevenire la user enumeration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - usernameOrEmail
+              - password
+              properties:
+                usernameOrEmail:
+                  type: string
+                  example: alice99
+                password:
+                  type: string
+                  format: password
+                  example: secret123
+      responses:
+        '200':
+          description: Login riuscito + token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '401':
+          description: Credenziali non valide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Credenziali non valide
+  /auth/me:
+    get:
+      tags:
+      - Autenticazione
+      summary: Dati dell'utente corrente
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Profilo utente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/AuthUser'
+        '401':
+          description: Token mancante o non valido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Utente non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/songs:
+    get:
+      tags:
+      - Admin
+      summary: Catalogo completo (vista admin)
+      description: Restituisce l'intero catalogo, inclusi i brani anonimi. Richiede un utente con `is_admin
+        = true`.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: q
+        in: query
+        schema:
+          type: string
+        description: Filtro su titolo/artista
+      - name: anonymous
+        in: query
+        schema:
+          type: boolean
+        description: Solo brani anonimi
+      - name: user_id
+        in: query
+        schema:
+          type: integer
+        description: Filtra per autore
+      responses:
+        '200':
+          description: Catalogo completo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LrclibSong'
+        '401':
+          description: Token mancante o non valido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Privilegi admin richiesti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                message: Solo gli amministratori possono accedere a questa risorsa
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT ottenuto da /auth/login o /auth/register
+    powToken:
+      type: apiKey
+      in: header
+      name: X-Publish-Token
+      description: Soluzione Proof of Work nel formato prefix:nonce (solo pubblicazione anonima)
+  schemas:
+    LrclibSong:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        trackName:
+          type: string
+          example: Midnight Drive
+        artistName:
+          type: string
+          example: Solar Static
+        albumName:
+          type: string
+          nullable: true
+          example: Polar Lights
+        duration:
+          type: number
+          nullable: true
+          example: 198.0
+        instrumental:
+          type: boolean
+          example: false
+        plainLyrics:
+          type: string
+          example: 'Headlights cutting through a velvet sky
+
+            ...'
+        syncedLyrics:
+          type: string
+          nullable: true
+          example: '[00:00.00] Headlights cutting through a velvet sky
+
+            [00:04.20] Highway humming like a lullaby'
+        submittedBy:
+          type: string
+          nullable: true
+          description: Username dell'autore, null se anonimo (PoW)
+          example: null
+    PublishBody:
+      type: object
+      required:
+      - trackName
+      - artistName
+      - plainLyrics
+      properties:
+        trackName:
+          type: string
+          example: Demo Track
+        artistName:
+          type: string
+          example: Demo Artist
+        plainLyrics:
+          type: string
+          example: 'First line
+
+            Second line'
+        albumName:
+          type: string
+          example: Optional Album
+        duration:
+          type: number
+          example: 123.4
+        syncedLyrics:
+          type: string
+          description: Testo in formato LRC; i timestamp vengono rilevati automaticamente
+          example: '[00:00.00] First line
+
+            [00:03.50] Second line'
+        instrumental:
+          type: boolean
+          default: false
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 7
+        username:
+          type: string
+          example: alice99
+        email:
+          type: string
+          example: alice@example.com
+        is_admin:
+          type: boolean
+          example: false
+    AuthSession:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/AuthUser'
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    Challenge:
+      type: object
+      properties:
+        prefix:
+          type: string
+          example: 0fbe285cf9198af4beffd38bc7b854ac085908422b68246e09052d8532f1dfb0
+        target:
+          type: string
+          example: 0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    ExploreResult:
+      type: object
+      properties:
+        songs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LrclibSong'
+        total:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        pages:
+          type: integer
+          example: 3
+        has_next:
+          type: boolean
+        has_prev:
+          type: boolean
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Lyrics non trovate
+    GlobalError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Risorsa non trovata
